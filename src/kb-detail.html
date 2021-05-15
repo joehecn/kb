@@ -1,0 +1,305 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="./kb-icons.html">
+<link rel="import" href="../bower_components/paper-tabs/paper-tabs.html">
+
+<link rel="import" href="kb-post.html">
+<link rel="import" href="kb-sm.html">
+<link rel="import" href="kb-flight.html">
+<link rel="import" href="kb-history.html">
+
+<dom-module id="kb-detail">
+  <template>
+    <style>
+      .menu-btn {
+        position: fixed;
+        z-index: 10;
+      }
+
+      footer {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        height: 50px;
+        line-height: 50px;
+        background-color: white;
+      }
+    </style>
+
+    <paper-icon-button class="menu-btn" icon="arrow-back" on-tap="_backList" aria-label="Categories">
+    </paper-icon-button>
+
+    <iron-pages selected="[[selectedtab]]">
+      <!-- 保险 persons, ukecards, pancards, rsocards, oldcards -->
+      <kb-post sm="[[sm]]" userobj="[[userobj]]" setplaces="[[setplaces]]" servermans="[[servermans]]" key="[[key]]" detail="[[detail]]" persons="[[persons]]" ukecards="[[ukecards]]" pancards="[[pancards]]" rsocards="[[rsocards]]" oldcards="[[oldcards]]" selectedpage="[[selectedpage]]" on-goto-page="gotoPage">
+      </kb-post>
+      <kb-sm sm="[[sm]]" userobj="[[userobj]]">
+      </kb-sm>
+      <kb-flight flight="[[detail.flight]]" flightslist="[[flightslist]]">
+      </kb-flight>
+      <kb-history historys="[[detail.historys]]"></kb-history>
+    </iron-pages>
+
+    <div style="height: 50px;"></div>
+
+    <footer>
+      <paper-tabs selected="{{selectedtab}}" align-bottom="">
+        <paper-tab>操作</paper-tab>
+        <paper-tab>名单</paper-tab>
+        <paper-tab>航班</paper-tab>
+        <paper-tab>记录</paper-tab>
+      </paper-tabs>
+    </footer>
+  </template>
+
+  <script>'use strict';
+
+Polymer({
+  is: 'kb-detail',
+  behaviors: [KbUtilBehavior],
+  properties: {
+    selectedtab: {
+      type: Number,
+      value: 0,
+      notify: true,
+      observer: '_selectedtabChanged'
+    },
+    // dd: "深圳 宝安国际T3"              /* 到达 */
+    //   ddTerminal: "T3"                 ／* 到达航站楼 *／
+    //   dd_city: "深圳"                   /* 到达城市 */
+    // dd_citycode: "SZX"                /* 到达机场三字码 */
+    //   dd_simple: "宝安国际"              /* 到达机场 */
+    //   ddzk: "--"                        /* 到达闸口 */
+    // djk: "C21"                        /* 登机口 */
+    //   jhddtime: "0: 0"                  /* 计划到达时间 */
+    // jhddtime_full: "2016-10-20 0: 0"  /* 计划到达时间_full */
+    //   jhqftime: "2: 5"                  /* 计划起飞时间 */
+    // jhqftime_full: "2016-10-19 2: 5"  /* 计划起飞时间_full */
+    // qf: "北京 首都国际T3"               /* 起飞 */
+    //   qfTerminal: "T3"                  /* 起飞航站楼 */
+    //   qf_city: "北京"                    /* 起飞城市 */
+    // qf_citycode: "PEK"                 /* 起飞机场三字码 */
+    //   qf_simple: "首都国际"               /* 起飞机场 */
+    //   sjddtime: "0: 3"                   /* 实际到达时间 */
+    // sjddtime_full: "2016-10-20 0: 3"   /* 实际到达时间_full */
+    //   sjqftime: "2: 9"                   /* 实际起飞时间 */
+    // sjqftime_full: "2016-10-19 2: 9"   /* 实际起飞时间_full */
+    // state: "到达"                       /* 状态: 计划 起飞 到达 延误 取消 */
+    //   stateid: "3"                       /* 状态码 */
+    //   xlzp: "--"                         /* 行李转盘 */
+    //   yjddtime: ""                       /* 预计到达时间 */
+    // yjddtime_full: ""                  /* 预计到达时间_full */
+    //   yjqftime: ""                       /* 预计起飞时间 */
+    // yjqftime_full: ""                  /* 预计起飞时间_full */
+    // zjgt: "K05-K14"                    /* 值机柜台 */
+    flightslist: {
+      type: Array,
+      value: [{
+        qf: '',
+        // 起飞
+        qf_citycode: '',
+        // 起飞机场三字码
+        zjgt: '',
+        // 值机柜台
+        djk: '',
+        // 登机口
+        jhqftime: '',
+        // 计划起飞时间
+        yjqftime: '',
+        // 预计起飞时间
+        sjqftime: '',
+        // 实际起飞时间
+        state: '',
+        // 状态
+        dd: '',
+        // 到达
+        dd_citycode: '',
+        // 到达机场三字码
+        jhddtime: '',
+        // 计划到达时间
+        yjddtime: '',
+        // 预计到达时间
+        sjddtime: '' // 实际到达时间
+
+      }]
+    }
+  },
+  _backList: function () {
+    this.fire('back-list');
+  },
+  _selectedtabChanged: function (newValue) {
+    var sio;
+    var flight;
+    var postObj;
+
+    if (newValue === 0) {
+      this.set('selectedpage', 0);
+    } else if (newValue === 2) {
+      sio = this.getSio();
+      flight = this.detail.flight;
+      this.set('flightslist', [{
+        qf: '',
+        // 起飞
+        qf_citycode: '',
+        // 起飞机场三字码
+        zjgt: '',
+        // 值机柜台
+        djk: '',
+        // 登机口
+        jhqftime: '',
+        // 计划起飞时间
+        yjqftime: '',
+        // 预计起飞时间
+        sjqftime: '',
+        // 实际起飞时间
+        state: '',
+        // 状态
+        dd: '',
+        // 到达
+        dd_citycode: '',
+        // 到达机场三字码
+        jhddtime: '',
+        // 计划到达时间
+        yjddtime: '',
+        // 预计到达时间
+        sjddtime: '' // 实际到达时间
+
+      }]);
+      postObj = {
+        key: this.key,
+        flightNum: flight.flightNum,
+        flightDate: moment(flight.flightDate).format('YYYY-MM-DD')
+      };
+      sio.emit('cemit-postFlightInfo', postObj, function (result) {
+        // console.log(result)
+        if (result.success === 1 && result.body.error_code === 0) {
+          if (postObj.flightNum === this.detail.flight.flightNum) {
+            this.set('flightslist', result.body.result.list);
+          }
+        } else {
+          this.fire('show-snackbar', {
+            innerHTML: '找不到当前航班',
+            type: 'err'
+          });
+        }
+      }.bind(this));
+    }
+  },
+  gotoPage: function (event) {
+    var page = event.detail.page;
+    var sio;
+    var serverMan;
+
+    if (page === 1) {
+      // 保险
+      sio = this.getSio();
+      serverMan = event.detail.serverMan; // cards
+      // 向服务器获取此单已开保险信息
+      // 获取此人未开保险信息
+
+      sio.emit('cemit-getServerManCards', {
+        key: this.key,
+        id: this.detail.id,
+        serverMan: serverMan
+      }, function (results) {
+        // console.log(results)
+        var _filter = this._filterResults(results, serverMan);
+
+        this.set('ukecards', this._addIndex(_filter.ukecards.sort(this._sortCards)));
+        this.set('pancards', this._addIndex(_filter.pancards.sort(this._sortCards)));
+        this.set('rsocards', this._addIndex(_filter.rsocards.sort(this._sortCards)));
+        this.set('oldcards', _filter.oldcards);
+      }.bind(this)); // persons
+
+      this.set('persons', this._filterPersons(this.sm.sm._id, this.sm.team.users));
+    }
+
+    this.set('selectedpage', page);
+  },
+  _addIndex: function (cards) {
+    var len = cards.length;
+    var i;
+
+    for (i = 0; i < len; i++) {
+      cards[i].__index__ = i;
+    }
+
+    return cards;
+  },
+  _sortCards: function (a, b) {
+    if (a.pinganCardNum < b.pinganCardNum) {
+      return -1;
+    } else if (a.pinganCardNum > b.pinganCardNum) {
+      return 1;
+    } else {
+      return 0;
+    }
+  },
+  _filterPersons: function (sid, users) {
+    var _persons = [];
+    var __space__ = true; // 单双组分色，用底色分开单双组
+
+    users.forEach(function (user) {
+      var batchs = user.batchs;
+      batchs.forEach(function (batch) {
+        if (batch.departureTraffic._id === sid && batch.departureTraffic.isSm === true || batch.returnTraffic._id === sid && batch.returnTraffic.isSm == true) {
+          var persons = batch.persons;
+          var batchFirstPerson = true;
+          persons.forEach(function (person) {
+            if (person.isSend) {
+              if (batchFirstPerson) {
+                __space__ = !__space__;
+                batchFirstPerson = false;
+              }
+
+              person.__space__ = __space__;
+              person.__pinganCardNum__ = '';
+              person.__locking__ = false; // true 正在开卡中..., 锁住不让选择
+
+              _persons.push(person);
+            }
+          });
+        }
+      });
+    });
+    return _persons;
+  },
+  _filterResults: function (results, serverMan) {
+    var ukecards = []; // 优客未开卡
+
+    var pancards = []; // 平安未开卡
+
+    var rsocards = []; // 人寿未开卡
+
+    var oldcards = []; // 已开卡
+    // var pancard_index = 0
+    // var rsocard_index = 0
+
+    results.forEach(function (card) {
+      if (card.serverMan === serverMan && card.isInsurance === 2) {
+        if (card.cardType === 3) {
+          card.__posted__ = false;
+          ukecards.push(card);
+        } else if (card.cardType === 1) {
+          // card.__index__ = pancard_index
+          card.__posted__ = false;
+          pancards.push(card); // pancard_index++
+        } else {
+          // card.__index__ = rsocard_index
+          card.__posted__ = false;
+          rsocards.push(card); // rsocard_index++
+        }
+      } else {
+        oldcards.push(card);
+      }
+    });
+    return {
+      ukecards: ukecards,
+      pancards: pancards,
+      rsocards: rsocards,
+      oldcards: oldcards
+    };
+  }
+});</script>
+</dom-module>

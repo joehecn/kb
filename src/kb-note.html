@@ -1,0 +1,169 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../bower_components/app-layout/app-header-layout/app-header-layout.html">
+<link rel="import" href="../bower_components/app-layout/app-header/app-header.html">
+
+<dom-module id="kb-note">
+  <template>
+    <style>
+      :host {
+        position: fixed;
+        background: #dff0d8;
+        z-index: 15;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+      }
+
+      app-header {
+        @apply(--layout-fixed-top);
+        z-index: 1;
+        /*color: #fff;*/
+        /*background-color: var(--app-primary-color);*/
+        background-color: #efefef;
+        --app-header-shadow: {
+          box-shadow: inset 0px 5px 6px -3px rgba(0, 0, 0, 0.2);
+          height: 10px;
+          bottom: -10px;
+        }
+      }
+
+      #kbNote {
+        position: relative;
+      }
+
+      paper-button.submit-btn {
+        position: absolute;
+        top: 4px;
+        right: 10px;
+      }
+
+      paper-button.green {
+        height: 32px;
+        background-color: var(--paper-green-500);
+        color: white;
+      }
+
+      paper-button.green[active] {
+        background-color: var(--paper-green-500);
+      }
+
+      .content {
+        @apply(--layout-flex);
+      }
+
+      #noteTextarea {
+        width: 95%;
+        height: 100px;
+      }
+    </style>
+    
+    <app-header-layout fullbleed="" has-scrolling-region="">
+      <app-header id="header" role="navigation" fixed="">
+        
+        <div id="kbNote">
+          <div>
+            <paper-icon-button class="close-btn" icon="close" on-tap="_gotoPage" aria-label="Categories">
+            </paper-icon-button>
+            <span>{{_computeTitle(tp)}}</span>
+            <paper-button toggles="" raised="" class="submit-btn green" hidden$="{{hiddenBtn}}" on-tap="_submit">提交</paper-button>
+          </div>
+        </div>
+      </app-header>
+
+      <div class="content">
+        <div style="text-align: center; padding: 8px;">
+          <textarea id="noteTextarea" value="[[_computeNote(tp, detail)]]"></textarea>
+        </div>
+      </div>
+    </app-header-layout>
+  </template>
+  
+  <script>'use strict';
+
+Polymer({
+  is: 'kb-note',
+  properties: {
+    hiddenBtn: {
+      type: Boolean,
+      value: false
+    }
+  },
+  _computeTitle: function (tp) {
+    if (tp === 'djp') {
+      return '登机牌备注';
+    } else {
+      return '服务备注';
+    }
+  },
+  _computeNote: function (tp, detail) {
+    if (tp === 'djp') {
+      return detail.djpNote || '';
+    } else {
+      return detail.serverNote || '';
+    }
+  },
+  _submit: function () {
+    var _textarea = this.$.noteTextarea;
+
+    if (this.tp === 'djp' && _textarea.value !== this.detail.djpNote) {
+      this.set('hiddenBtn', true);
+      sio.emit('cemit-kanbanUpdate', {
+        key: this.key,
+        sm: this.detail.id,
+        name: this.userobj.name,
+        set: {
+          djpNote: _textarea.value
+        }
+      }, function (result) {
+        console.log(result);
+        this.set('hiddenBtn', false);
+
+        if (result.success === 1) {
+          this.set('detail.djpNote', _textarea.value);
+
+          this._gotoPage();
+        } else {
+          var val = this.detail.djpNote;
+          _textarea.value = val;
+        }
+
+        this.fire('sm-update', {
+          success: result.success
+        });
+      }.bind(this));
+    } else if (_textarea.value !== this.detail.serverNote) {
+      this.set('hiddenBtn', true);
+      sio.emit('cemit-kanbanUpdate', {
+        key: this.key,
+        sm: this.detail.id,
+        name: this.userobj.name,
+        set: {
+          serverNote: _textarea.value
+        }
+      }, function (result) {
+        this.set('hiddenBtn', false);
+
+        if (result.success === 1) {
+          this.set('detail.serverNote', _textarea.value);
+
+          this._gotoPage();
+        } else {
+          var val = this.detail.serverNote;
+          _textarea.value = val;
+        }
+
+        this.fire('sm-update', {
+          success: result.success
+        });
+      }.bind(this));
+    }
+  },
+  _gotoPage: function () {
+    this.fire('goto-page', {
+      page: 0
+    });
+  }
+});</script>
+</dom-module>

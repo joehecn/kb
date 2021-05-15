@@ -1,0 +1,603 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+
+<link rel="import" href="shop-input.html">
+<link rel="import" href="shop-button.html">
+<link rel="import" href="shop-common-styles.html">
+<link rel="import" href="shop-select.html">
+
+<dom-module id="kb-opt">
+  <template>
+    <style include="shop-common-styles shop-button shop-input shop-select">
+      #gotoPage {
+        float: right;
+        width: 80%;
+        height: 36px;
+      }
+
+      .item {
+        padding: 8px;
+        border-bottom: 1px solid #ddd;
+      }
+
+      .item.item-bottom {
+        padding-bottom: 0;
+      }
+
+      .iTime {
+        display: inline-block;
+        width: 80px;
+      }
+
+      shop-select > select {
+        font-size: 16px;
+        padding-left: 40px;
+      }
+
+      shop-select > shop-md-decorator {
+        font-size: 12px;
+        border: none;
+      }
+
+      shop-select > select {
+        padding: 2px 24px 2px 40px;
+      }
+      
+      #serverNoteTextarea,
+      #flightTextarea,
+      #djpNoteTextarea {
+        width: 100%;
+        margin-right: 8px;
+        background: #dff0d8;
+        min-height: 40px;
+      }
+
+      .flight_gai {
+        display: block;
+        color: #bbb;
+        text-decoration: line-through;
+      }
+
+      paper-button.submit-btn {
+        position: absolute;
+        top: 1px;
+        right: 10px;
+      }
+
+      paper-button.green {
+        height: 28px;
+        background-color: var(--paper-red-500);
+        color: white;
+      }
+
+      paper-button.green[disabled] {
+        background-color: var(--paper-green-500);
+      }
+    </style>
+    <div style="height: 40px; position: relative;">
+      <template is="dom-if" if="[[_computeShowInsuranceBtn(detail)]]">
+        <shop-button responsive="" id="gotoPage">
+          <input type="button" on-tap="_gotoPage1" value="开保险">
+        </shop-button>
+      </template>
+    </div>
+    
+    <!-- <div style="height: 10px;"></div> -->
+    <div class="item">
+      <span class="iTime">现场负责人</span>
+      <span>
+        <shop-select>
+          <select id="serverManSelect" aria-label="Change serverMan" value="[[detail.serverMan]]" on-change="_serverManChange">
+            <template is="dom-repeat" items="[[servermans]]">&gt;
+              <option value="[[item]]">[[item]]</option>
+            </template>
+          </select>
+          <shop-md-decorator aria-hidden="true"></shop-md-decorator>
+        </shop-select>
+      </span>
+    </div>
+
+    <div class="item item-bottom">
+      <span class="iTime">登机牌</span>
+      <span>
+        <shop-select>
+          <select id="djpStateSelect" aria-label="Change djpState" value="[[detail.djpState]]" on-change="_djpStateChange">
+            <template is="dom-repeat" items="[[djpStates]]">&gt;
+              <option value="[[item]]">[[item]]</option>
+            </template>
+          </select>
+          <shop-md-decorator aria-hidden="true"></shop-md-decorator>
+        </shop-select>
+      </span>
+      <div id="djpNoteTextarea" on-tap="_gotoPage2">[[detail.djpNote]]</div>
+    </div>
+
+    <div class="item">
+      <span class="iTime">集合地点</span>
+      <span>
+        <shop-select>
+          <select id="setplaceSelect" aria-label="Change setPlace" value="[[detail.smSetPlace]]" on-change="_setPlaceChange">
+            <template is="dom-repeat" items="[[setplaces]]">&gt;
+              <option value="[[item]]">[[item]]</option>
+            </template>
+          </select>
+          <shop-md-decorator aria-hidden="true"></shop-md-decorator>
+        </shop-select>
+      </span>
+    </div>
+
+    <div class="item item-bottom">
+      <span class="iTime">航班</span>
+      <span>
+        <shop-select>
+          <select id="flightStateSelect" aria-label="Change flightState" value="[[detail.flightState]]" on-change="_flightStateChange">
+            <template is="dom-repeat" items="[[flightStates]]">&gt;
+              <option value="[[item]]">[[item]]</option>
+            </template>
+          </select>
+          <shop-md-decorator aria-hidden="true"></shop-md-decorator>
+        </shop-select>
+      </span>
+      <div id="flightTextarea" on-tap="_gotoPage3">
+        <span>[[_computeflight_filter(sm.sm.flight)]]</span>
+        <span class="flight_gai">[[_computeflight_gai(detail.flight_gai)]]</span>
+      </div>
+    </div>
+    
+    <!-- 代收 -->
+    <!-- <template is="dom-if" if="[[sm.sm.smAgencyFund]]"> -->
+    <div class="item" style$="display:[[_computeShowMoney(sm.sm.smAgencyFund)]]">
+      <span class="iTime">代收 ¥[[_computeAgencyFund(sm.sm.smAgencyFund)]]</span>
+      <span>
+        <shop-select>
+          <select id="smAgencyFundSelect" aria-label="Change smAgencyFund" value="[[detail.smAgencyFundState]]" on-change="_smAgencyFundChange">
+
+            <option value="未收">未收</option>
+            <option value="已收">已收</option>
+
+          </select>
+          <shop-md-decorator aria-hidden="true"></shop-md-decorator>
+        </shop-select>
+      </span>
+    </div>
+    <!-- </template> -->
+
+    <!-- 代付 -->
+    <!-- <template is="dom-if" if="[[sm.sm.smPayment]]"> -->
+    <div class="item" style$="display:[[_computeShowMoney(sm.sm.smPayment)]]">
+      <span class="iTime">代付 ¥[[_computePayment(sm.sm.smPayment)]]</span>
+      <span>
+        <shop-select>
+          <select id="smPaymentSelect" aria-label="Change smPayment" value="[[_covertPaymentState(detail.smPaymentState)]]" on-change="_smPaymentChange">
+
+            <option value="未付">未付</option>
+            <option value="已付">已付</option>
+
+          </select>
+          <shop-md-decorator aria-hidden="true"></shop-md-decorator>
+        </shop-select>
+      </span>
+    </div>
+    <!-- </template> -->
+    
+    <!-- Number -->
+    <div class="item" style="position: relative;">
+      <span class="iTime">服务状态</span>
+      <span>
+        <shop-select>
+          <select id="smStatusSelect" aria-label="Change smStatus" value="[[detail.serverState]]" on-change="_smStatusChange">
+              <option value="未完成">未完成</option>
+              <option value="完成">已完成</option>
+          </select>
+          <shop-md-decorator aria-hidden="true"></shop-md-decorator>
+        </shop-select>
+      </span>
+      
+      <!-- <paper-button on-tap="_sendWXMessage"
+        toggles
+        raised
+        class="submit-btn green"
+        hidden$="{{hiddenBtn}}"
+        disabled$={{detail.wxServerState}}>
+        {{_computeWxSSText(detail.wxServerState)}}
+      </paper-button> -->
+
+      <div id="serverNoteTextarea" on-tap="_gotoPage4">[[detail.serverNote]]</div>
+    </div>
+
+    <div style="margin-top: 8px; position: relative;">
+      <paper-button on-tap="_gotoPage5" toggles="" raised="" class="submit-btn">
+        发送消息
+      </paper-button>
+    </div>
+  </template>
+
+  <script>'use strict';
+
+Polymer({
+  is: 'kb-opt',
+  behaviors: [KbUtilBehavior],
+  properties: {
+    djpStates: {
+      type: Array,
+      value: ['未办理', '已办理', '部分已领', '全部OK']
+    },
+    flightStates: {
+      type: Array,
+      value: ['计划', '延误', '取消', '起飞', '到达']
+    },
+    // setplaces: {
+    //   type: Array,
+    //   value: []
+    // }
+    hiddenBtn: {
+      type: Boolean,
+      value: false
+    }
+  },
+  attached: function () {
+    this.async(function () {
+      if (this.sm && this.sm.sm) {
+        this.$.serverManSelect.selectedIndex = this.servermans.indexOf(this.detail.serverMan);
+        this.$.djpStateSelect.selectedIndex = this.djpStates.indexOf(this.detail.djpState);
+        this.$.setplaceSelect.selectedIndex = this.setplaces.indexOf(this.detail.smSetPlace);
+        this.$.flightStateSelect.selectedIndex = this.flightStates.indexOf(this.detail.flightState);
+
+        if (this.sm.sm.smAgencyFund) {
+          this.$.smAgencyFundSelect.selectedIndex = this._computeSmAgencyFundStateAttached(this.detail.smAgencyFundState);
+        }
+
+        if (this.sm.sm.smPayment) {
+          this.$.smPaymentSelect.selectedIndex = this._computeSmPaymentStateAttached(this.detail.smPaymentState);
+        }
+
+        this.$.smStatusSelect.selectedIndex = this._computeServerStateAttached(this.detail.serverState);
+      }
+    }, 1);
+  },
+  _computeShowInsuranceBtn: function (detail) {
+    return detail && detail.smType1 === 1;
+  },
+  // _getPlaces: function (CITY) {
+  //   switch (CITY) {
+  //     case '深圳':
+  //       return ['6', '2', '0']
+  //     case '广州':
+  //       return ['2', '16']
+  //     default:
+  //       return ['11']
+  //   }
+  // },
+  // observers: [
+  //   '_serverManChanged(sm.sm.serverMan)',
+  //   '_djpStateChanged(detail.djpState)',
+  //   '_smSetPlaceChanged(detail.smSetPlace)'
+  // ],
+  // 保险
+  // kb-detail 监听 这个事件
+  _gotoPage1: function () {
+    // 先要得到 serverMan 现场负责人
+    if (this.detail && this.detail.serverMan && this.detail.serverMan !== '待定') {
+      this.fire('goto-page', {
+        page: 1,
+        serverMan: this.detail.serverMan
+      });
+    } else {
+      this.fire('show-snackbar', {
+        innerHTML: '先要指定现场负责人',
+        type: 'err'
+      });
+    }
+  },
+  // djpNote
+  _gotoPage2: function () {
+    this.fire('goto-page', {
+      page: 2
+    });
+  },
+  // flightpost
+  _gotoPage3: function () {
+    this.fire('goto-page', {
+      page: 3
+    });
+  },
+  // serverNote
+  _gotoPage4: function () {
+    this.fire('goto-page', {
+      page: 4
+    });
+  },
+  // 完成短信
+  _gotoPage5: function () {
+    this.fire('goto-page', {
+      page: 5
+    });
+  },
+  // TODO: 优化算法
+  _serverManChange: function () {
+    var _select = this.$.serverManSelect;
+    var sio = this.getSio();
+    sio.emit('cemit-smUpdate', {
+      key: this.key,
+      id: this.sm.sm._id,
+      name: this.userobj.name,
+      set: {
+        serverMan: _select.value
+      }
+    }, function (result) {
+      if (result.success === 1) {
+        this.set('detail.serverMan', _select.value);
+      } else {
+        var val = this.detail.serverMan;
+        _select.selectedIndex = this.servermans.indexOf(val);
+      }
+
+      this.fire('sm-update', {
+        success: result.success // eid: this.detail.id,
+        // field: 'serverMan',
+        // value: _select.value
+
+      });
+    }.bind(this)); // this.fire('sm-update', {
+    //   id: this.sm.sm._id,
+    //   { serverMan: this.$.djpStateSelect.value }
+    // })
+  },
+  _djpStateChange: function () {
+    var _select = this.$.djpStateSelect;
+    var sio = this.getSio();
+    sio.emit('cemit-kanbanUpdate', {
+      key: this.key,
+      sm: this.detail.id,
+      name: this.userobj.name,
+      set: {
+        djpState: _select.value
+      }
+    }, function (result) {
+      if (result.success === 1) {
+        this.set('detail.djpState', _select.value);
+      } else {
+        var val = this.detail.djpState;
+        _select.selectedIndex = this.djpStates.indexOf(val);
+      }
+
+      this.fire('sm-update', {
+        success: result.success
+      });
+    }.bind(this));
+  },
+  _setPlaceChange: function () {
+    var _select = this.$.setplaceSelect;
+    var sio = this.getSio();
+    sio.emit('cemit-kanbanUpdate', {
+      key: this.key,
+      sm: this.detail.id,
+      name: this.userobj.name,
+      set: {
+        smSetPlace: _select.value
+      }
+    }, function (result) {
+      if (result.success === 1) {
+        this.set('detail.smSetPlace', _select.value);
+      } else {
+        var val = this.detail.smSetPlace;
+        _select.selectedIndex = this.setplaces.indexOf(val);
+      }
+
+      this.fire('sm-update', {
+        success: result.success
+      });
+    }.bind(this));
+  },
+  _computeflight_filter: function (f) {
+    if (f && f.flightDate) {
+      return this.computeflightTitle(f);
+    } else {
+      return '';
+    }
+  },
+  _computeflight_gai: function (flight_gai) {
+    if (flight_gai) {
+      return this.computeflightTitle({
+        flightDate: flight_gai.flightDate_old,
+        flightNum: flight_gai.flightNum_old,
+        flightStartCity: flight_gai.flightStartCity_old,
+        flightEndCity: flight_gai.flightEndCity_old,
+        flightStartTime: flight_gai.flightStartTime_old,
+        flightEndTime: flight_gai.flightEndTime_old
+      });
+    } else {
+      return '';
+    }
+  },
+  _flightStateChange: function () {
+    var _select = this.$.flightStateSelect;
+    var sio = this.getSio();
+    sio.emit('cemit-kanbanUpdate', {
+      key: this.key,
+      sm: this.detail.id,
+      name: this.userobj.name,
+      set: {
+        flightState: _select.value
+      }
+    }, function (result) {
+      if (result.success === 1) {
+        this.set('detail.flightState', _select.value);
+      } else {
+        var val = this.detail.flightState;
+        _select.selectedIndex = this.flightStates.indexOf(val);
+      }
+
+      this.fire('sm-update', {
+        success: result.success
+      });
+    }.bind(this));
+  },
+  _computeSmAgencyFundStateAttached: function (val) {
+    if (val === '已收') {
+      return 1;
+    } else {
+      return 0;
+    }
+  },
+  _computeShowMoney: function (val) {
+    if (val === 0) {
+      return 'none';
+    } else {
+      return 'block';
+    }
+  },
+  _computeAgencyFund: function (val) {
+    return val / -100;
+  },
+  _smAgencyFundChange: function () {
+    var _select = this.$.smAgencyFundSelect;
+    var sio = this.getSio();
+    sio.emit('cemit-kanbanUpdate', {
+      key: this.key,
+      sm: this.detail.id,
+      name: this.userobj.name,
+      set: {
+        smAgencyFundState: _select.value
+      }
+    }, function (result) {
+      if (result.success === 1) {
+        this.set('detail.smAgencyFundState', _select.value);
+      } else {
+        var val = this.detail.smAgencyFundState;
+        _select.selectedIndex = this._computeSmAgencyFundStateAttached(val);
+      }
+
+      this.fire('sm-update', {
+        success: result.success
+      });
+    }.bind(this));
+  },
+  _covertPaymentState: function (val) {
+    // 已收是历史遗留问题
+    if (val === '已收' || val === '已付') {
+      return '已付';
+    } else {
+      return '未付';
+    }
+  },
+  _computeSmPaymentStateAttached: function (val) {
+    // 已收是历史遗留问题
+    if (val === '已收' || val === '已付') {
+      return 1;
+    } else {
+      return 0;
+    }
+  },
+  _computePayment: function (val) {
+    return val / 100;
+  },
+  _smPaymentChange: function () {
+    var _select = this.$.smPaymentSelect;
+    var sio = this.getSio();
+    sio.emit('cemit-kanbanUpdate', {
+      key: this.key,
+      sm: this.detail.id,
+      name: this.userobj.name,
+      set: {
+        smPaymentState: _select.value
+      }
+    }, function (result) {
+      if (result.success === 1) {
+        this.set('detail.smPaymentState', _select.value);
+      } else {
+        var val = this.detail.smPaymentState;
+        _select.selectedIndex = this._computeSmPaymentStateAttached(val);
+      }
+
+      this.fire('sm-update', {
+        success: result.success
+      });
+    }.bind(this));
+  },
+  _computeServerStateAttached: function (smStatus) {
+    if (smStatus === '完成') {
+      return 1;
+    } else {
+      return 0;
+    }
+  },
+  _coverServerStateToNumber: function (val) {
+    if (val === '完成') {
+      return 3;
+    } else {
+      return 2;
+    }
+  },
+  _smStatusChange: function () {
+    var _select = this.$.smStatusSelect;
+    var sio = this.getSio();
+    sio.emit('cemit-smUpdate', {
+      key: this.key,
+      id: this.sm.sm._id,
+      name: this.userobj.name,
+      set: {
+        smStatus: this._coverServerStateToNumber(_select.value)
+      }
+    }, function (result) {
+      if (result.success === 1) {
+        this.set('detail.serverState', _select.value);
+      } else {
+        var val = this.detail.serverState;
+        _select.selectedIndex = this._computeServerStateAttached(val);
+      }
+
+      this.fire('sm-update', {
+        success: result.success
+      });
+    }.bind(this));
+  } // _computeDisabled: function (wxServerState) {
+  //   if (wxServerState) {
+  //     return 'disabled'
+  //   } else {
+  //     return ''
+  //   }
+  // },
+  // _computeWxSSText: function (wxServerState) {
+  //   if (wxServerState) {
+  //     return '已通知'
+  //   } else {
+  //     return '微信通知'
+  //   }
+  // },
+  // sendWXMessage: function () {
+  //   var sio = this.getSio()
+  //   var userNames = ['solso']
+  //   var smNum = this.getSmNum(this.sm.sm, this.userobj)
+  //   var msg = '您好,' + smNum +'团已完成,一切顺利!(阳光服务)'
+  //   // userNames = ['solso', 'tongbin', 'zhouwenbin', 'shenbin', 'wuming', 'threeants']
+  //   this.sm.team.users.forEach(function (user) {
+  //     userNames.push(user._id.userName)
+  //   })
+  //   // this.set('hiddenBtn', true)
+  //   sio.emit('cemit-sendWXMessage', {
+  //     key: this.key,
+  //     userNames: userNames,
+  //     msg: msg,
+  //     sm: this.detail.id,
+  //     name: this.userobj.name,
+  //     set: { wxServerState: true }
+  //   }, function (result) {
+  //     // this.set('hiddenBtn', false)
+  //     if (result.success === 1) {
+  //       this.set('detail.wxServerState', true)
+  //       this.fire('show-snackbar', {
+  //         innerHTML: '发送成功'
+  //       })
+  //     } else {
+  //       this.fire('show-snackbar', {
+  //         innerHTML: '出现异常 - 通知何苗',
+  //         type: 'err'
+  //       })
+  //     }
+  //   }.bind(this))
+  // }
+
+});</script>
+</dom-module>

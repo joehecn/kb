@@ -1,0 +1,132 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="kb-moment.html">
+
+<dom-module id="kb-flight">
+  <template>
+    <style>
+      h3.title {
+        position: absolute;
+        left: 40px;
+      }
+
+      .flightDiv {
+        margin: 16px;
+      }
+
+      .flightTable {
+        width: 100%;
+      }
+
+      .th2 {
+        text-align: center;
+      }
+
+      .cycle {
+        display: inline-flex;
+        background: #3f51b5;
+        border-radius: 50%;
+        color: #ffffff;
+        height: 56px;
+        width: 56px;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .t-left {
+        text-align: left;
+      }
+
+      .t-right {
+        text-align: right;
+      }
+    </style>
+
+    <div style="height: 40px; position: relative;">
+      <h3 class="title">[[_covertDateTitle(flight)]]</h3>
+    </div>
+
+    <div class="flightDiv">
+      <h4>[[_computeFlightTitle(flight)]]</h4>
+      <div hidden$="[[!_isShowFlightTable]]">
+        <template is="dom-repeat" items="[[flightslist]]">
+          <table class="flightTable">
+            <thead>
+              <tr>
+                <th colspan="2">值机柜台: [[item.zjgt]]</th>
+                <th>登机口: [[item.djk]]</th>
+              </tr>
+              <tr>
+                <th colspan="3" class="th2"><span class="cycle">[[item.state]]</span></th>
+              </tr>
+              <tr>
+                <th></th>
+                <th class="t-left">起飞</th>
+                <th class="t-right">到达</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- <tr>
+                <td>三字码</td>
+                <td>[[item.qf_citycode]]</td>
+                <td class="t-right">[[item.dd_citycode]]</td>
+              </tr> -->
+              <tr>
+                <td>机场</td>
+                <td>[[item.qf]]</td>
+                <td class="t-right">[[item.dd]]</td>
+              </tr>
+              <tr>
+                <td>计划</td>
+                <td>[[item.jhqftime]]</td>
+                <td class="t-right">[[item.jhddtime]]</td>
+              </tr>
+              <tr>
+                <td>预计</td>
+                <td>[[item.yjqftime]]</td>
+                <td class="t-right">[[item.yjddtime]]</td>
+              </tr>
+              <tr>
+                <td>实际</td>
+                <td>[[item.sjqftime]]</td>
+                <td class="t-right">[[item.sjddtime]]</td>
+              </tr>
+            </tbody>
+          </table>
+        </template>
+      </div>
+    </div>
+  </template>
+
+  <script>'use strict';
+
+Polymer({
+  is: 'kb-flight',
+  behaviors: [KbUtilBehavior],
+  properties: {
+    _isShowFlightTable: {
+      computed: '_computeShouldShowFlight(flightslist)'
+    }
+  },
+  _covertDateTitle: function (f) {
+    if (f && f.flightDate) {
+      return this.covertDate(f.flightDate) + ' ' + f.flightNum;
+    } else {
+      return '';
+    }
+  },
+  _computeFlightTitle: function (f) {
+    if (f && f.flightStartCity) {
+      return this.computeFlight(f);
+    } else {
+      return '';
+    }
+  },
+  _computeShouldShowFlight: function (flightslist) {
+    if (flightslist[0].qf === '') {
+      return false;
+    }
+
+    return true;
+  }
+});</script>
+</dom-module>

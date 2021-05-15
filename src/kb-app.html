@@ -1,0 +1,374 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../bower_components/app-storage/app-localstorage/app-localstorage-document.html">
+
+<link rel="import" href="../bower_components/app-route/app-location.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+
+<link rel="import" href="../bower_components/iron-pages/iron-pages.html">
+
+<link rel="import" href="kb-moment.html">
+<link rel="import" href="kb-util-behavior.html">
+
+<!-- Since `list` is the default route, eagerly load it. -->
+<link rel="import" href="kb-list.html">
+
+<dom-module id="kb-app">
+  <template>
+    <style>
+      :host {
+        display: block;
+        position: relative;
+        margin: 0;
+        padding: 0;
+
+        --app-success-color: #5cb85c;
+        --app-danger-color: #d9534f;
+      }
+    </style>
+
+    <app-localstorage-document key="userobj" data="{{userobj}}">
+    </app-localstorage-document>
+
+    <app-localstorage-document key="gotodayobj" data="{{gotodayobj}}">
+    </app-localstorage-document>
+    
+    <app-localstorage-document key="detail" data="{{detail}}">
+    </app-localstorage-document>
+
+    <app-localstorage-document key="sm" data="{{sm}}">
+    </app-localstorage-document>
+
+    <!--
+      app-location and app-route elements provide the state of the URL for the app.
+    -->
+    <app-location route="{{route}}"></app-location>
+    <app-route route="{{route}}" pattern="/:pattern" data="{{routeData}}">
+    </app-route>
+
+    <!-- <app-header-layout fullbleed> -->
+    <iron-pages selected="[[page]]" attr-for-selected="name" selected-attribute="visible" fallback-selection="view404" role="main">
+      <!-- list view -->
+      <kb-list id="list" name="list" userobj="[[userobj]]" gotoday="[[gotoday]]" key="[[key]]" setplaces="[[setplaces]]" on-kb-fullcalendar-day-changed="onKbFullcalendarDayChanged" on-kb-fullcalendar-event-click="onKbFullcalendarEventClick" on-calendar-day-changed="calendarDayChanged" on-logout="logout">
+      </kb-list>
+      <!-- detail view -->
+      <kb-detail id="detail" name="detail" userobj="[[userobj]]" setplaces="[[setplaces]]" key="[[key]]" selectedtab="{{selectedtab}}" servermans="[[servermans]]" detail="[[detail]]" sm="[[sm]]" on-show-snackbar="onShowSnackbar" on-back-list="detailToList" on-sm-update="onSmUpdate">
+      </kb-detail>
+      <!-- login view -->
+      <kb-login id="login" name="login" on-set-userobj="onSetUserobj">
+      </kb-login>
+      <!-- 404 -->
+      <kb-view404 name="view404"></kb-view404>
+    </iron-pages>
+  </template>
+
+  <script>'use strict';
+
+Polymer({
+  is: 'kb-app',
+  behaviors: [KbUtilBehavior],
+  properties: {
+    userobj: {
+      type: Object,
+      value: {
+        name: '',
+        CITY: '',
+        key: ''
+      }
+    },
+    gotodayobj: {
+      type: Object,
+      value: {
+        gotoday: ''
+      }
+    },
+    key: {
+      type: String,
+      value: ''
+    },
+    page: {
+      type: String,
+      reflectToAttribute: true,
+      // 关联 iron-pages
+      observer: '_pageChanged'
+    },
+    servermans: {
+      type: Array,
+      value: []
+    },
+    setplaces: {
+      type: Array,
+      value: []
+    },
+    selectedtab: {
+      type: Number,
+      value: 0
+    },
+    detail: {
+      type: Object,
+      value: {
+        flight: {
+          flightDate: '',
+          flightNum: '',
+          flightStartCity: '',
+          flightEndCity: '',
+          flightStartTime: '',
+          flightEndTime: ''
+        }
+      }
+    },
+    // { sm team isidcard idcardsms myfeestemp }
+    sm: {
+      type: Object,
+      value: {
+        sm: {},
+        team: {}
+      }
+    }
+  },
+  observers: ['_routePageChanged(routeData.pattern)'],
+  created: function () {
+    this.removeAttribute('unresolved');
+  },
+  ready: function () {
+    // listen for online/offline
+    Polymer.RenderStatus.afterNextRender(this, function () {
+      this.listen(window, 'online', '_notifyNetworkStatus');
+      this.listen(window, 'offline', '_notifyNetworkStatus');
+    });
+  },
+  _routePageChanged: function (pattern) {
+    // console.info('_routePageChanged', pattern)
+    // document.body.scrollTop = 0
+    var dateStr = '';
+    var checkedDate = false; // 权限控制 判断是否跳转到登录页面
+
+    if (pattern !== 'login' && !this.key) {
+      if (window.localStorage.userobj && JSON.parse(window.localStorage.userobj).key) {
+        this.key = JSON.parse(window.localStorage.userobj).key;
+      } else {
+        pattern = 'login';
+        this.set('route.path', '/login');
+      }
+    } // page 一定不为空值
+
+
+    if (pattern) {
+      if (pattern === 'list') {
+        // 检查日期格式是否正确
+        dateStr = this.route.path.substr(6, 10);
+        checkedDate = this._checkDate(dateStr);
+
+        if (!checkedDate) {
+          this.page = 'list';
+          this.gotoday = moment().format('YYYY-MM-DD');
+          this.set('route.path', ['/list', this.gotoday].join('/'));
+        } else {
+          this.set('gotoday', dateStr);
+          this.page = 'list';
+        }
+      } else {
+        this.page = pattern;
+      }
+    } else {
+      this.page = 'list';
+      this.gotoday = moment().format('YYYY-MM-DD');
+      this.set('route.path', ['/list', this.gotoday].join('/'));
+    }
+  },
+  _pageChanged: function (page) {
+    var resolvedPageUrl; // 拿到了 key
+
+    if (this.key) {
+      // 判断 servermans 是否为空数组，如果为空，填充
+      if (this.servermans.length === 0) {
+        this._setServermans();
+      } // 判断 setplaces
+
+
+      if (this.setplaces.length === 0) {
+        this.setplaces = this._setSetplaces();
+      }
+    }
+
+    if (Polymer.isInstance(this.$[page])) {
+      this._pageLoaded();
+
+      return;
+    }
+
+    resolvedPageUrl = this.resolveUrl('kb-' + page + '.html');
+    this.importHref(resolvedPageUrl, function () {
+      this._pageLoaded();
+    }, this._showPage404, true);
+  },
+  _pageLoaded: function () {
+    // load lazy resources after render and set 'loadComplete' when done.
+    if (!this.loadComplete) {
+      Polymer.RenderStatus.afterNextRender(this, function () {
+        this.importHref(this.resolveUrl('lazy-resources.html'), function () {
+          // Register service worker if supported.
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js');
+          }
+
+          this._notifyNetworkStatus();
+
+          this.loadComplete = true;
+        });
+      });
+    }
+  },
+  _notifyNetworkStatus: function () {
+    var oldOffline = this.offline;
+    this.offline = !navigator.onLine; // Show the snackbar if the user is offline when starting a new session
+    // or if the network status changed.
+
+    if (this.offline || !this.offline && oldOffline === true) {
+      if (this.offline) {
+        this._showSnackbar('系统处于离线状态', 'err');
+      } else {
+        this._showSnackbar('网络连接就绪');
+      }
+    }
+  },
+  _showSnackbar: function (innerHTML, type) {
+    if (!this._networkSnackbar) {
+      this._networkSnackbar = document.createElement('kb-snackbar');
+      Polymer.dom(this.root).appendChild(this._networkSnackbar);
+    }
+
+    Polymer.dom(this._networkSnackbar).innerHTML = innerHTML;
+
+    this._networkSnackbar.open(type);
+  },
+  _showPage404: function () {
+    this.page = 'view404';
+  },
+  _checkDate: function (val) {
+    var dateRe = /^(\d{4})\-(\d{2})\-(\d{2})$/;
+    var dataY;
+    var n;
+    var y; // 先看格式是不是正确
+
+    if (!dateRe.test(val)) {
+      return false;
+    }
+
+    dataY = new Date(val).getFullYear();
+    n = new Date();
+    y = n.getFullYear();
+
+    if (dataY < 1900 || dataY > y) {
+      return false;
+    }
+
+    if (new Date(val).getDate() === Number(val.substring(val.length - 2))) {
+      return true;
+    } else {
+      return false;
+    }
+  },
+  _setServermans: function () {
+    var sio = this.getSio();
+    sio.emit('cemit-getServermans', {
+      key: this.key
+    }, function (result) {
+      if (result.success === 1) {
+        this.servermans = result.servermans;
+      }
+    }.bind(this));
+  },
+  _setSetplaces: function () {
+    var CITY = JSON.parse(window.localStorage.userobj).CITY;
+
+    switch (CITY) {
+      case '深圳':
+        return ['6', '2', '0'];
+
+      case '广州':
+        return ['2', '20'];
+
+      default:
+        return ['7', '11'];
+    }
+  },
+  // login
+  onSetUserobj: function (event) {
+    this.userobj = event.detail;
+    this.key = this.userobj.key;
+    this.gotoday = moment().format('YYYY-MM-DD');
+    this.set('route.path', ['/list', this.gotoday].join('/'));
+    this.$.list.$.kbFullcalendar.goto();
+  },
+  onKbFullcalendarDayChanged: function (event) {
+    this.gotoday = event.detail;
+    this.set('route.path', ['/list', this.gotoday].join('/'));
+  },
+  onKbFullcalendarEventClick: function (calEvent) {
+    var sio = this.getSio();
+    this.detail = calEvent.detail; // 获取 sm 信息
+
+    sio.emit('cemit-getSmById', {
+      key: this.key,
+      id: this.detail.id
+    }, function (result) {
+      if (result.sm) {
+        this.sm = result;
+      }
+    }.bind(this));
+    this.set('gotodayobj', {
+      gotoday: this.gotoday
+    });
+    this.set('selectedtab', 0);
+    this.set('route.path', '/detail');
+  },
+  calendarDayChanged: function () {
+    this.gotoday = event.detail;
+    this.set('route.path', ['/list', this.gotoday].join('/'));
+    this.$.list.$.kbFullcalendar.goto();
+  },
+  onShowSnackbar: function (event) {
+    var obj = event.detail;
+
+    this._showSnackbar(obj.innerHTML, obj.type);
+  },
+  // TODO: 优化算法
+  detailToList: function () {
+    var _gotoday;
+
+    if (!this.gotoday) {
+      _gotoday = window.localStorage.gotodayobj && JSON.parse(window.localStorage.gotodayobj).gotoday;
+      this.gotoday = _gotoday || moment.format('YYYY-MM-DD');
+      this.set('route.path', ['/list', this.gotoday].join('/'));
+      this.$.list.$.kbFullcalendar.goto();
+    } else {
+      this.set('route.path', ['/list', this.gotoday].join('/'));
+      this.$.list.$.kbFullcalendar.goto();
+    }
+  },
+  // TODO: 优化算法
+  onSmUpdate: function (event) {
+    var detail = event.detail;
+
+    if (detail.success === 1) {
+      // var index = this._findEventById(detail.eid)
+      // if (index > -1) {
+      //   this.set('events.' + index + '.' + detail.field, detail.value)
+      // }
+      this._showSnackbar('修改成功');
+    } else {
+      this._showSnackbar('修改失败', 'err');
+    }
+  },
+  logout: function () {
+    this.key = '';
+    this.gotodayobj = {};
+    this.userobj = {};
+    this.detail = {};
+    this.sm = {}; // 跳转到登录页面
+
+    this.set('route.path', '/login');
+  }
+});</script>
+</dom-module>

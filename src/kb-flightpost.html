@@ -1,0 +1,370 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../bower_components/app-layout/app-header-layout/app-header-layout.html">
+<link rel="import" href="../bower_components/app-layout/app-header/app-header.html">
+
+<link rel="import" href="kb-jquery.html">
+<link rel="import" href="kb-moment.html">
+
+
+<dom-module id="kb-flightpost">
+  <template>
+    <style>
+      :host {
+        position: fixed;
+        background: #dff0d8;
+        z-index: 15;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+      }
+
+      app-header {
+        @apply(--layout-fixed-top);
+        z-index: 1;
+        /*color: #fff;*/
+        /*background-color: var(--app-primary-color);*/
+        background-color: #efefef;
+        --app-header-shadow: {
+          box-shadow: inset 0px 5px 6px -3px rgba(0, 0, 0, 0.2);
+          height: 10px;
+          bottom: -10px;
+        }
+      }
+
+      #kbFlightpost {
+        position: relative;
+      }
+
+      .btn-groups {
+        position: absolute;
+        top: 4px;
+        right: 8px;
+      }
+
+      paper-button.green {
+        height: 32px;
+        background-color: var(--paper-green-500);
+        color: white;
+      }
+
+      paper-button.green[disabled] {
+        background-color: var(--paper-red-500);
+      }
+
+      .content {
+        @apply(--layout-flex);
+      }
+
+      .content input {
+        padding: 4px;
+        width: 90%;
+      }
+
+    </style>
+    
+    <app-header-layout fullbleed="" has-scrolling-region="">
+      <app-header id="header" role="navigation" fixed="">
+        
+        <div id="kbFlightpost">
+          <div>
+            <paper-icon-button class="close-btn" icon="close" on-tap="_gotoPage" aria-label="Categories">
+            </paper-icon-button>
+            <span>航班</span>
+            <div class="btn-groups">
+              <!-- <paper-button toggles raised class="submit-btn green"
+                on-tap="_search">查找</paper-button> -->
+              <paper-button toggles="" raised="" class="submit-btn green" disabled$="{{disabledupdate}}" on-tap="update">修改</paper-button>
+              <paper-button toggles="" raised="" class="submit-btn green" disabled$="{{disabledfix}}" on-tap="fix">改签</paper-button>
+            </div>
+          </div>
+        </div>
+      </app-header>
+
+      <div class="content">
+        <div style="text-align: center; padding: 8px;">
+          <table id="flightTb" style="text-align: left; width: 100%;">
+            <tbody>
+              <tr>
+                <td>[[covertDate(sm.sm.flight.flightDate)]]</td>
+                <td><input class="flightDate" value="{{flight.flightDate::change}}"></td>
+              </tr>
+              <tr>
+                <td>[[sm.sm.flight.flightNum]]</td>
+                <td><input value="{{flight.flightNum::change}}"></td>
+              </tr>
+              <tr>
+                <td>[[sm.sm.flight.flightStartCity]]</td>
+                <td><input value="{{flight.flightStartCity::change}}"></td>
+              </tr>
+              <tr>
+                <td>[[sm.sm.flight.flightEndCity]]</td>
+                <td><input value="{{flight.flightEndCity::change}}"></td>
+              </tr>
+              <tr>
+                <td>[[covertTime(sm.sm.flight.flightStartTime)]]</td>
+                <td><input value="{{flight.flightStartTime::change}}"></td>
+              </tr>
+              <tr>
+                <td>[[covertTime(sm.sm.flight.flightEndTime)]]</td>
+                <td><input value="{{flight.flightEndTime::change}}"></td>
+              </tr>
+              <tr>
+                <td>
+                  <paper-button style="height: 28px;" raised="" on-tap="_copy">复制到右边</paper-button>
+                </td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="text-align: left;">
+            <p>可以输入: </p>
+            <span>日期: 20161020</span><br>
+            <span>航班号: zh9970</span><br>
+            <span>时间: 0310</span>
+          </div>
+        </div>
+      </div>
+    </app-header-layout>
+  </template>
+  
+  <script>'use strict';
+
+Polymer({
+  is: 'kb-flightpost',
+  properties: {
+    disabledupdate: {
+      type: Boolean,
+      value: false
+    },
+    disabledfix: {
+      type: Boolean,
+      value: false
+    },
+    flight: {
+      type: Object,
+      value: {
+        flightDate: '',
+        flightNum: '',
+        flightStartCity: '',
+        flightEndCity: '',
+        flightStartTime: '',
+        flightEndTime: ''
+      }
+    }
+  },
+  behaviors: [KbUtilBehavior],
+  _copy: function () {
+    this.set('flight', {
+      flightDate: this.covertDate(this.sm.sm.flight.flightDate),
+      flightNum: this.sm.sm.flight.flightNum,
+      flightStartCity: this.sm.sm.flight.flightStartCity,
+      flightEndCity: this.sm.sm.flight.flightEndCity,
+      flightStartTime: this.covertTime(this.sm.sm.flight.flightStartTime),
+      flightEndTime: this.covertTime(this.sm.sm.flight.flightEndTime)
+    });
+  },
+  _gotoPage: function () {
+    this.fire('goto-page', {
+      page: 0
+    });
+  },
+  _covertDateToMoment: function (date) {
+    return moment(date);
+  },
+  _covertTimeToMoment: function (flightDate, flightTime) {
+    return moment(flightDate + ' ' + flightTime);
+  },
+  _covertTimesToMoment: function (flight) {
+    var flightStartTime = this._covertTimeToMoment(flight.flightDate, flight.flightStartTime);
+
+    var flightEndTime = this._covertTimeToMoment(flight.flightDate, flight.flightEndTime);
+
+    if (moment(flightStartTime).isAfter(moment(flightEndTime))) {
+      flightEndTime = moment(flightEndTime).add(1, 'day');
+    }
+
+    return {
+      flightStartTime: flightStartTime,
+      flightEndTime: flightEndTime
+    };
+  },
+  // 转换日期
+  _convertDate: function (val) {
+    var dateRe = /^(\d{4})\-(\d{2})\-(\d{2})$/;
+    var dataY;
+    var n;
+    var y;
+    val = val.trim();
+
+    if (val.length === 8) {
+      val = val.substr(0, 4) + '-' + val.substr(4, 2) + '-' + val.substr(6, 2);
+    } // 先看格式是不是正确
+
+
+    if (!dateRe.test(val)) {
+      return '';
+    }
+
+    dataY = new Date(val).getFullYear();
+    n = new Date();
+    y = n.getFullYear();
+
+    if (new Date(val).getDate() === Number(val.substring(val.length - 2))) {
+      return val;
+    } else {
+      return '';
+    }
+  },
+  // 航班转大写
+  _convertTrimAndUppercaseStr: function (val) {
+    return val.trim().toUpperCase();
+  },
+  // 转换时间
+  _convertFlightTime: function (val) {
+    var re = /^(([01][0-9])|(2[0-3])):[0-5][0-9]$/;
+    var re2 = /^(([01][0-9])|(2[0-3]))[0-5][0-9]$/;
+    val = val.trim().replace('：', ':');
+
+    if (re.test(val)) {
+      return val;
+    } else if (re2.test(val)) {
+      return val.substr(0, 2) + ':' + val.substr(2, 2);
+    } else {
+      return '';
+    }
+  },
+  _convertFlight: function (f) {
+    var checked = true;
+    var _f = {};
+
+    var _d = this._convertDate(f.flightDate);
+
+    if (_d) {
+      _f.flightDate = _d;
+    } else {
+      this.fire('show-snackbar', {
+        innerHTML: '日期不正确',
+        type: 'err'
+      });
+      return {
+        checked: false
+      };
+    }
+
+    var _n = this._convertTrimAndUppercaseStr(f.flightNum);
+
+    if (_n) {
+      _f.flightNum = _n;
+    } else {
+      this.fire('show-snackbar', {
+        innerHTML: '航班不能为空',
+        type: 'err'
+      });
+      return {
+        checked: false
+      };
+    }
+
+    var _stc = f.flightStartCity.trim();
+
+    var _edc = f.flightEndCity.trim();
+
+    if (_stc && _edc) {
+      _f.flightStartCity = _stc;
+      _f.flightEndCity = _edc;
+    } else {
+      this.fire('show-snackbar', {
+        innerHTML: '城市不能为空',
+        type: 'err'
+      });
+      return {
+        checked: false
+      };
+    }
+
+    var _stt = this._convertFlightTime(f.flightStartTime.trim());
+
+    var _edt = this._convertFlightTime(f.flightEndTime.trim());
+
+    if (_stt && _edt) {
+      _f.flightStartTime = _stt;
+      _f.flightEndTime = _edt;
+    } else {
+      this.fire('show-snackbar', {
+        innerHTML: '时间不能为空',
+        type: 'err'
+      });
+      return {
+        checked: false
+      };
+    }
+
+    return {
+      checked: true,
+      flight: _f
+    };
+  },
+  _update: function (type) {
+    this.async(function () {
+      var obj = this._convertFlight(this.flight);
+
+      var _timesObj;
+
+      var _flight;
+
+      if (obj.checked) {
+        // 与sm.sm.flight比较
+        if (obj.flight.flightDate !== this.covertDate(this.sm.sm.flight.flightDate) || obj.flight.flightNum !== this.sm.sm.flight.flightNum || obj.flight.flightStartCity !== this.sm.sm.flight.flightStartCity || obj.flight.flightEndCity !== this.sm.sm.flight.flightEndCity || obj.flight.flightStartTime !== this.covertTime(this.sm.sm.flight.flightStartTime) || obj.flight.flightEndTime !== this.covertTime(this.sm.sm.flight.flightEndTime)) {
+          _timesObj = this._covertTimesToMoment(obj.flight);
+          _flight = {
+            flightDate: this._covertDateToMoment(obj.flight.flightDate),
+            flightNum: obj.flight.flightNum,
+            flightStartCity: obj.flight.flightStartCity,
+            flightEndCity: obj.flight.flightEndCity,
+            flightStartTime: _timesObj.flightStartTime,
+            flightEndTime: _timesObj.flightEndTime
+          };
+          this.disabledupdate = true;
+          this.disabledfix = true; // var sio = this.getSio()
+
+          this.getSio().emit('cemit-sm' + type, {
+            key: this.key,
+            id: this.sm.sm._id,
+            name: this.userobj.name,
+            old: this.sm.sm.flight,
+            set: {
+              flight: _flight
+            }
+          }, function (result) {
+            this.disabledupdate = false;
+            this.disabledfix = false;
+
+            if (result.success === 1) {
+              this.set('sm.sm.flight', _flight);
+
+              this._gotoPage();
+            }
+
+            this.fire('sm-update', {
+              success: result.success
+            });
+          }.bind(this));
+        } else {
+          this.fire('show-snackbar', {
+            innerHTML: '没发现要改哪啊？',
+            type: 'err'
+          });
+        }
+      }
+    }, 1);
+  },
+  update: function () {
+    this._update('Update');
+  },
+  fix: function () {
+    this._update('Fix');
+  }
+});</script>
+</dom-module>

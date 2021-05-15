@@ -1,0 +1,471 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../bower_components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../bower_components/paper-radio-button/paper-radio-button.html">
+
+<link rel="import" href="kb-icons.html">
+
+<link rel="import" href="shop-select.html">
+
+<dom-module id="kb-insurance-item">
+  <template>
+    <style is="custom-style" include="shop-common-styles shop-select">
+      .small {
+        --iron-icon-height: 16px;
+        --iron-icon-width: 16px;
+      }
+
+      .item {
+        padding: 8px;
+        border-bottom: 1px solid #ddd;
+      }
+
+      .item-bg {
+        background-color: #eee;
+      }
+
+      .item-cl {
+        color: #bbb;
+      }
+
+      .sn {
+        display: inline-block;
+        width: 40px;
+      }
+
+      .name {
+        display: inline-block;
+        width: 100px;
+      }
+
+      .cardType {
+        display: inline-block;
+        line-height: 20px;
+        width: 20px;
+        height: 20px;
+        border-radius: 10px;
+        text-align: center;
+        color: #bbb;
+        border: 1px solid #bbb;
+        float: right;
+      }
+
+      .child {
+        background-color: #fff;
+      }
+
+      .child input {
+        border: 1px solid #ddd;
+        padding: 8px;
+      }
+
+      .errMsg {
+        display: block;
+        padding: 4px 8px;
+        color: var(--app-danger-color);
+      }
+    </style>
+
+    <div class$="item [[_computeItemClass(person.__space__)]] [[comp]]">
+      <span class="sn" on-tap="_toggleChild">[[_computeSn(index)]]</span>
+      <span style="display: inline-block; width: calc(100% - 50px);" on-tap="_togglePerson">
+        <span class="name">
+          [[person.name]]
+          <template is="dom-if" if="[[person.phone]]">
+            <iron-icon class="small" icon="phone"></iron-icon>
+          </template>
+          <template is="dom-if" if="[[person.pinganCardNum]]">
+            <iron-icon class="small" icon="flight"></iron-icon>
+          </template>
+          <template is="dom-if" if="[[person.__pinganCardNum__]]">
+            <iron-icon class="small" icon="{{checkorlock}}"></iron-icon>
+          </template>
+        </span>
+        <span class="pinganCardNum">
+          [[person.pinganCardNum]]
+        </span>
+        <span class="pinganCardNum">
+          [[person.__pinganCardNum__]]
+        </span>
+        <template is="dom-if" if="[[person.cardType]]">
+          <span class="cardType">[[_computeCardTypeStr(person.cardType)]]</span>
+        </template>
+      </span>
+    </div>
+    <template is="dom-if" if="[[childOpened]]">
+      <div class="child">
+        <template is="dom-if" if="[[errMsg]]">
+          <span class="errMsg">[[errMsg]]</span>
+          <template is="dom-if" if="[[showPwd]]">
+            <input type="text" value="{{person.__password__::input}}">
+          </template>
+        </template>
+        <template is="dom-if" if="[[showInfo]]">
+          <input type="text" value="{{person.name::input}}">
+          <shop-select style="margin-left: 10px;">
+            <select aria-label="Change cardCategory" value="[[person.cardCategory]]" on-change="_cardCategoryChange">
+              <option value="身份证">身份证</option>
+              <option value="护照">护照</option>
+              <option value="港澳回乡证">港澳回乡证</option>
+              <option value="台胞证">台胞证</option>
+              <option value="军官证">军官证</option>
+              <option value="其它">其它</option>
+            </select>
+            <shop-md-decorator aria-hidden="true" style="border-top: none;"></shop-md-decorator>
+          </shop-select>
+          <template is="dom-if" if="[[_isShowSex(person.cardCategory)]]">
+            <input type="text" value="{{person.birthday::input}}">
+            <paper-radio-group selected="{{person.sex}}" style="padding: 0;">
+              <paper-radio-button name="男" style="padding: 6px;">男</paper-radio-button>
+              <paper-radio-button name="女" style="padding: 6px;">女</paper-radio-button>
+            </paper-radio-group>
+          </template>
+          <input style="width: 100%;" type="text" value="{{person.cardNum::input}}">
+        </template>
+      </div>
+    </template>
+
+  </template>
+
+  <script>'use strict';
+
+Polymer({
+  is: 'kb-insurance-item',
+  properties: {
+    comp: {
+      type: String,
+      value: ''
+    },
+    childOpened: {
+      type: Boolean,
+      value: false
+    },
+    showPwd: {
+      type: Boolean,
+      value: false
+    },
+    showInfo: {
+      type: Boolean,
+      value: true
+    },
+    errMsg: {
+      type: String,
+      value: '',
+      observer: '_errMsgChanged'
+    },
+    checkorlock: {
+      type: String
+    }
+  },
+  observers: ['observerItemClass(person.pinganCardNum)', 'observerLocking(person.__locking__)', 'observerErrMsg(person.__errMsg__)'],
+  _errMsgChanged: function (val) {
+    if (val) {
+      this.childOpened = true;
+    }
+  },
+  observerItemClass: function (pinganCardNum) {
+    this.comp = pinganCardNum ? 'item-cl' : '';
+  },
+  observerLocking: function (lock) {
+    // console.log('observerLocking:', lock)
+    var icon = lock ? 'lock' : 'check';
+    this.set('checkorlock', icon);
+  },
+  observerErrMsg: function (msg) {
+    this.showPwd = false;
+
+    if (!msg || msg === -1 || msg === 99) {
+      this.showInfo = true;
+      return;
+    }
+
+    if (msg === 11) {
+      this.set('errMsg', '该卡已经被使用');
+      this.showInfo = false;
+    } else if (msg === 12) {
+      this.set('errMsg', '卡号不存在');
+      this.showInfo = false;
+    } else if (msg === 13) {
+      this.set('errMsg', '密码错误');
+      this.showInfo = false;
+      this.showPwd = true;
+    } else if (msg === 14) {
+      this.set('errMsg', '卡号或密码有误');
+      this.showInfo = false;
+    } else if (msg === 17) {
+      this.set('errMsg', '第一屏网络请求错误');
+      this.showInfo = false;
+    } else if (msg === 19) {
+      this.set('errMsg', '第一屏未知错误, 告诉老何');
+      this.showInfo = false;
+    } else if (msg === 21) {
+      this.set('errMsg', '英文姓名只能由大写英文字母和空格组成，且不能包含连续两个空格');
+      this.showInfo = true;
+    } else if (msg === 22) {
+      this.set('errMsg', '累计投保份数超过规定份数;请确认是否原购买的卡还未到期');
+      this.showInfo = false;
+    } else if (msg === 23) {
+      this.set('errMsg', '姓名只能由中文、半角大写英文字母及“.”组成，且不能有空格');
+      this.showInfo = true;
+    } else if (msg === 24) {
+      this.set('errMsg', '保险期限的开始日期格式不正确，请重新填写');
+      this.showInfo = false;
+    } else if (msg === 25) {
+      this.set('errMsg', '第二屏未知错误, 告诉老何');
+      this.showInfo = false;
+    } else if (msg === 27) {
+      this.set('errMsg', '第二屏网络请求错误');
+      this.showInfo = false;
+    } else if (msg === 31) {
+      this.set('errMsg', '系统繁忙');
+      this.showInfo = false;
+    } else if (msg === 32) {
+      this.set('errMsg', '请按照正确的投保流程进行投保, 告诉老何');
+      this.showInfo = false;
+    } else if (msg === 37) {
+      this.set('errMsg', '第三屏网络请求错误');
+      this.showInfo = false;
+    } else if (msg === 38) {
+      this.set('errMsg', '第三屏未知错误, 告诉老何'); // china
+
+      this.showInfo = false;
+    } else if (msg === 39) {
+      this.set('errMsg', '第四屏未知错误, 告诉老何');
+      this.showInfo = false;
+    } else if (msg === 47) {
+      this.set('errMsg', '第四屏网络请求错误');
+      this.showInfo = false;
+    } else if (msg === 10) {
+      this.set('errMsg', '验证码错误, 告诉老何');
+      this.showInfo = false;
+    } else {
+      this.set('errMsg', '未知错误, 告诉老何');
+      this.showInfo = false;
+    }
+  },
+  _cardCategoryChange: function (event) {
+    this.set('person.cardCategory', event.target.value);
+  },
+  _isShowSex: function (cardCategory) {
+    return cardCategory !== '身份证';
+  },
+  _computeItemClass: function (__space__) {
+    if (__space__) {
+      return 'item-bg';
+    }
+
+    return ''; // var _classArr = []
+    // if (person.__space__) {
+    //   _classArr.push('item-bg')
+    // }
+    // if (person.pinganCardNum) {
+    //   _classArr.push('item-cl')
+    // }
+    // return _classArr.join(' ')
+  },
+  _computeSn: function (index) {
+    return index + 1;
+  },
+  _hasPhone: function (phone) {
+    return phone ? true : false;
+  },
+  _computeCardTypeStr: function (cardType) {
+    if (cardType === 3) {
+      return '优';
+    }
+
+    if (cardType === 1) {
+      return '平';
+    }
+
+    if (cardType === 2) {
+      return '人';
+    }
+
+    return '';
+  },
+  _toggleChild: function () {
+    if (this.childOpened) {
+      this.set('errMsg', '');
+      this.fire('close-child', {
+        index: this.index
+      });
+    }
+
+    this.childOpened = !this.childOpened;
+  },
+  _checkedPerson: function (person) {
+    // 证件类型
+    if (person.cardCategory === '') {
+      this.errMsg = '证件类型不能为空';
+      this.childOpened = true;
+      return false;
+    } // -- 身份证
+
+
+    if (person.cardCategory === '身份证') {
+      // ---- 身份证号有效性验证
+      if (!this._checkIdCard(person.cardNum)) {
+        this.errMsg = '身份证号码有误'; // this.childOpened = true
+
+        return false;
+      } // ---- 年龄不能大于80
+
+
+      var birth = person.cardNum.substr(6, 4) + '-' + person.cardNum.substr(10, 2) + '-' + person.cardNum.substr(12, 2);
+
+      if (!this._checkedAge(new Date(birth).getFullYear())) {
+        this.errMsg = '年龄不能大于80岁';
+        return false;
+      }
+    } else {
+      // -- 其他证件
+      // ---- 证件号码不能为空
+      if (!person.cardNum || person.cardNum.trim() === '') {
+        this.errMsg = '证件号码不能为空'; // this.childOpened = true
+
+        return false;
+      } // ---- 出生日期
+
+
+      if (!this._checkedBirthday(person.birthday)) {
+        this.errMsg = '出生日期有误'; // this.childOpened = true
+
+        return false;
+      } // ---- 年龄不能大于80
+
+
+      if (!this._checkedAge(new Date(person.birthday).getFullYear())) {
+        this.errMsg = '年龄不能大于80岁';
+        return false;
+      } // ---- 性别
+
+
+      if (person.sex !== '男' && person.sex !== '女') {
+        this.errMsg = '性别有误'; // this.childOpened = true
+
+        return false;
+      }
+    } // 姓名不能为空
+
+
+    if (!person.name || person.name.trim() === '') {
+      this.errMsg = '姓名不能为空'; // this.childOpened = true
+
+      return false;
+    }
+
+    this.childOpened = false;
+    return true;
+  },
+  _checkedBirthday: function (val) {
+    var dataY;
+    var n;
+    var y;
+    var dateRe = /^(\d{4})\-(\d{2})\-(\d{2})$/; // 先看格式是不是正确
+
+    if (!dateRe.test(val)) {
+      return false;
+    }
+
+    dataY = new Date(val).getFullYear();
+    n = new Date();
+    y = n.getFullYear();
+
+    if (dataY < 1900 || dataY > y) {
+      return false;
+    }
+
+    if (new Date(val).getDate() === Number(val.substring(val.length - 2))) {
+      return true;
+    } else {
+      return false;
+    }
+  },
+  _checkedAge: function (val) {
+    // console.log(val);
+    if (val > new Date().getFullYear() - 80) {
+      return true;
+    }
+
+    return false;
+  },
+  _checkIdCard: function (cardNum) {
+    var reg = /^\d{15}(\d{2}[0-9X])?$/i;
+
+    var isDate = function (date) {
+      return new Date(date).getDate() === Number(date.substring(date.length - 2));
+    };
+
+    var n;
+    var y;
+    var birth;
+    var iW;
+    var iSum;
+    var cCheck;
+    var iC;
+    var iVal;
+    var iJYM;
+    var sJYM;
+
+    if (!reg.test(cardNum)) {
+      return false;
+    }
+
+    if (cardNum.length === 15) {
+      return false;
+    }
+
+    if (cardNum.length === 18) {
+      n = new Date();
+      y = n.getFullYear();
+
+      if (parseInt(cardNum.substr(6, 4)) < 1900 || parseInt(cardNum.substr(6, 4)) > y) {
+        return false;
+      }
+
+      birth = cardNum.substr(6, 4) + '-' + cardNum.substr(10, 2) + '-' + cardNum.substr(12, 2);
+
+      if (!isDate(birth)) {
+        return false;
+      }
+
+      iW = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2, 1];
+      iSum = 0;
+
+      for (var i = 0; i < 17; i++) {
+        iC = cardNum.charAt(i);
+        iVal = parseInt(iC);
+        iSum += iVal * iW[i];
+      }
+
+      iJYM = iSum % 11;
+      if (iJYM === 0) sJYM = '1';else if (iJYM === 1) sJYM = '0';else if (iJYM === 2) sJYM = 'x';else if (iJYM === 3) sJYM = '9';else if (iJYM === 4) sJYM = '8';else if (iJYM === 5) sJYM = '7';else if (iJYM === 6) sJYM = '6';else if (iJYM === 7) sJYM = '5';else if (iJYM === 8) sJYM = '4';else if (iJYM === 9) sJYM = '3';else if (iJYM === 10) sJYM = '2';
+      cCheck = cardNum.charAt(17).toLowerCase();
+
+      if (cCheck !== sJYM) {
+        return false;
+      }
+    }
+
+    return true;
+  },
+  _togglePerson: function () {
+    // console.log('_togglePerson')
+    // 没有开保险且不是正在开卡的状态
+    if (!this.person.pinganCardNum && !this.person.__locking__) {
+      // TODO: 检查各项合法性
+      var checked = this._checkedPerson(this.person);
+
+      if (checked) {
+        this.fire('toggle-person', {
+          index: this.index,
+          // isSelect: this.isSelect,
+          phone: this.person.phone // 上报手机号
+
+        });
+      }
+    }
+  }
+});</script>
+</dom-module>

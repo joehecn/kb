@@ -1,0 +1,270 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<dom-module id="kb-sm">
+  <template>
+    <style>
+      h3.title {
+        position: absolute;
+        left: 40px;
+      }
+
+      h3, h4 {
+        padding-left: 8px;
+      }
+
+      .item:first-child {
+        border-top: 1px solid #ddd;
+      }
+
+      .item {
+        padding: 4px 8px;
+        border-bottom: 1px solid #ddd;
+      }
+
+      .iTime {
+        display: inline-block;
+        width: 30px;
+      }
+    </style>
+
+    <div style="height: 40px; position: relative;">
+      <h3 class="title">摘要信息</h3>
+    </div>
+    <!-- 单号 -->
+    <div class="item">
+      <span>[[getSmNum(sm.sm, userobj)]]</span>
+    </div>
+    <!-- 航班 -->
+    <div class="item">
+      <span>
+        [[_computeflight_filter(sm.sm.flight)]]
+      </span>
+    </div>
+    <!-- 关联航班 -->
+    <div class="item" style="color: #aaa;">
+      <span>[[setOtherFlight(sm.team, userobj)]]</span>
+    </div>
+
+    <div class="item">
+      <span class="iTime">团号</span>
+      <span>[[sm.team.teamNum]]</span>
+    </div>
+
+    <div class="item">
+      <span class="iTime">类型</span>
+      <span>[[sm.team.teamType]]</span>
+    </div>
+
+    <div class="item">
+      <span class="iTime">旗号</span>
+      <span>[[sm.team.smFlag]]</span>
+    </div>
+
+    <div class="item">
+      <span class="iTime">司机</span>
+      <span>[[getDriver(sm, userobj)]]</span>
+    </div>
+
+    <div class="item">
+      <span class="iTime">地接</span>
+      <span>[[getGuide(sm, userobj)]]</span>
+    </div>
+
+    <div class="item">
+      <span class="iTime">备注</span>
+      <span>[[sm.sm.smNote]]</span>
+    </div>
+
+    <div class="item">
+      <span class="iTime">联系</span>
+      <span inner-h-t-m-l="[[_computerOperator(sm.team.operator)]]"></span>
+    </div>
+
+    <template is="dom-repeat" items="[[_filterUsers(sm, userobj)]]">
+      <h3>
+        <a href="tel:[[item._id.phone]]" style="text-decoration: none;">
+          [[item._id.name]][[item._id.phone]]
+          <iron-icon icon="phone"></iron-icon>
+        </a>
+      </h3>
+
+      <template is="dom-repeat" items="[[item.batchs]]">
+        <h4>[[item.sn]]组</h4>
+        <template is="dom-repeat" items="[[item.persons]]">
+          <div class="item">
+            <span class="iTime">{{item.sn}}</span>
+            <span>[[item.name]]&nbsp;[[item.cardNum]]</span>
+            <template is="dom-if" if="[[item.phone]]">
+              <br>
+              <span class="iTime"></span>
+              <span>
+                <a href="tel:[[item.phone]]" style="text-decoration: none;">
+                  [[item.phone]]
+                  <iron-icon icon="phone"></iron-icon>
+                </a>
+              </span>
+            </template>
+          </div>
+        </template>
+      </template>
+    </template>
+  </template>
+
+  <script>'use strict';
+
+Polymer({
+  is: 'kb-sm',
+  behaviors: [KbUtilBehavior],
+  // properties: {
+  //   sm: {
+  //     type: Object,
+  //     value: {
+  //       sm: {
+  //       }
+  //     }
+  //   }
+  // },
+  _filterUsers: function (sm, userobj) {
+    if (sm && sm.team && sm.team.users && userobj && userobj.CITY) {
+      var city = userobj.CITY;
+      var sid = sm.sm._id;
+      var isSm = 'isMeet';
+      var batchNote = 'meetBatchNote';
+      var users = sm.team.users;
+      var ulen = users.length;
+      var _users = [];
+      var bsn = 0;
+      var psn = 0;
+      var user;
+
+      var _user;
+
+      var u;
+      var batchs;
+      var batch;
+      var blen;
+
+      var _batchs;
+
+      var _batch;
+
+      var b;
+      var persons;
+      var person;
+      var plen;
+
+      var _persons;
+
+      var p;
+
+      if (sm.sm.flight.flightStartCity === city) {
+        isSm = 'isSend';
+        batchNote = 'sendBatchNote';
+      }
+
+      for (u = 0; u < ulen; u++) {
+        user = users[u];
+        batchs = user.batchs;
+        blen = batchs.length; // ----------------------------
+
+        _user = {};
+        _batchs = [];
+
+        for (b = 0; b < blen; b++) {
+          batch = batchs[b];
+
+          if (batch.departureTraffic._id === sid && batch.departureTraffic.isSm === true || batch.returnTraffic._id === sid && batch.returnTraffic.isSm == true) {
+            persons = batch.persons;
+            plen = persons.length; // ----------------------------
+
+            _batch = {};
+            _persons = [];
+
+            for (p = 0; p < plen; p++) {
+              person = persons[p];
+
+              if (person[isSm]) {
+                person.sn = ++psn;
+
+                _persons.push(person);
+              }
+            } // ----------------------------
+
+
+            if (_persons.length > 0) {
+              _batch.sn = ++bsn;
+              _batch[batchNote] = batch[batchNote] || '';
+              _batch.persons = _persons;
+
+              _batchs.push(_batch);
+            }
+          }
+        }
+
+        if (_batchs.length > 0) {
+          _user._id = user._id;
+          _user.batchs = _batchs;
+
+          _users.push(_user);
+        }
+      }
+
+      return _users;
+    } else {
+      return [];
+    }
+  },
+  _computeflight_filter: function (f) {
+    if (f && f.flightDate) {
+      return this.computeflightTitle(f);
+    } else {
+      return '';
+    }
+  },
+  setOtherFlight: function (team) {
+    var traffic;
+
+    if (team && team.departureTraffics) {
+      traffic = this.getOtherFlight(team.departureTraffics[0]);
+    }
+
+    if (traffic) {
+      return this._computeflight_filter(traffic.flight);
+    }
+
+    if (team && team.returnTraffics) {
+      traffic = this.getOtherFlight(team.returnTraffics[0]);
+    }
+
+    if (traffic) {
+      return this._computeflight_filter(traffic.flight);
+    }
+
+    return '';
+  },
+  getOtherFlight: function (traffic) {
+    if (traffic.smStatus > 0) {
+      // 关联航班
+      if (traffic._id !== this.sm.sm._id) {
+        return traffic;
+      }
+    }
+
+    return null;
+  },
+  _computerOperator: function (operator) {
+    // 判断最后 11 位是不是 电话
+    var phones;
+
+    if (operator) {
+      phones = operator.match(/\d{11}$/);
+    }
+
+    if (phones) {
+      return '<a href="tel:' + phones[0] + '" style="text-decoration: none;">' + operator + '<iron-icon icon="phone"></iron-icon></a>';
+    } else {
+      return operator;
+    }
+  }
+});</script>
+</dom-module>

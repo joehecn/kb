@@ -1,0 +1,65 @@
+<html><head><link rel="import" href="../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../bower_components/app-storage/app-localstorage/app-localstorage-document.html">
+
+<link rel="import" href="../bower_components/app-route/app-location.html">
+<link rel="import" href="../bower_components/app-route/app-route.html">
+
+<link rel="import" href="../bower_components/iron-pages/iron-pages.html">
+
+<link rel="import" href="kb-moment.html">
+<link rel="import" href="kb-util-behavior.html">
+
+
+<link rel="import" href="kb-list.html">
+
+</head><body><dom-module id="kb-app">
+  <template>
+    <style>
+      :host {
+        display: block;
+        position: relative;
+        margin: 0;
+        padding: 0;
+
+        --app-success-color: #5cb85c;
+        --app-danger-color: #d9534f;
+      }
+    </style>
+
+    <app-localstorage-document key="userobj" data="{{userobj}}">
+    </app-localstorage-document>
+
+    <app-localstorage-document key="gotodayobj" data="{{gotodayobj}}">
+    </app-localstorage-document>
+    
+    <app-localstorage-document key="detail" data="{{detail}}">
+    </app-localstorage-document>
+
+    <app-localstorage-document key="sm" data="{{sm}}">
+    </app-localstorage-document>
+
+    
+    <app-location route="{{route}}"></app-location>
+    <app-route route="{{route}}" pattern="/:pattern" data="{{routeData}}">
+    </app-route>
+
+    
+    <iron-pages selected="[[page]]" attr-for-selected="name" selected-attribute="visible" fallback-selection="view404" role="main">
+      
+      <kb-list id="list" name="list" userobj="[[userobj]]" gotoday="[[gotoday]]" key="[[key]]" setplaces="[[setplaces]]" on-kb-fullcalendar-day-changed="onKbFullcalendarDayChanged" on-kb-fullcalendar-event-click="onKbFullcalendarEventClick" on-calendar-day-changed="calendarDayChanged" on-logout="logout">
+      </kb-list>
+      
+      <kb-detail id="detail" name="detail" userobj="[[userobj]]" setplaces="[[setplaces]]" key="[[key]]" selectedtab="{{selectedtab}}" servermans="[[servermans]]" detail="[[detail]]" sm="[[sm]]" on-show-snackbar="onShowSnackbar" on-back-list="detailToList" on-sm-update="onSmUpdate">
+      </kb-detail>
+      
+      <kb-login id="login" name="login" on-set-userobj="onSetUserobj">
+      </kb-login>
+      
+      <kb-view404 name="view404"></kb-view404>
+    </iron-pages>
+  </template>
+
+  <script>"use strict";Polymer({is:"kb-app",behaviors:[KbUtilBehavior],properties:{userobj:{type:Object,value:{name:"",CITY:"",key:""}},gotodayobj:{type:Object,value:{gotoday:""}},key:{type:String,value:""},page:{type:String,reflectToAttribute:!0,observer:"_pageChanged"},servermans:{type:Array,value:[]},setplaces:{type:Array,value:[]},selectedtab:{type:Number,value:0},detail:{type:Object,value:{flight:{flightDate:"",flightNum:"",flightStartCity:"",flightEndCity:"",flightStartTime:"",flightEndTime:""}}},sm:{type:Object,value:{sm:{},team:{}}}},observers:["_routePageChanged(routeData.pattern)"],created:function(){this.removeAttribute("unresolved")},ready:function(){Polymer.RenderStatus.afterNextRender(this,function(){this.listen(window,"online","_notifyNetworkStatus"),this.listen(window,"offline","_notifyNetworkStatus")})},_routePageChanged:function(t){var e="",i=!1;"login"===t||this.key||(window.localStorage.userobj&&JSON.parse(window.localStorage.userobj).key?this.key=JSON.parse(window.localStorage.userobj).key:(t="login",this.set("route.path","/login"))),t?"list"===t?(e=this.route.path.substr(6,10),i=this._checkDate(e),i?(this.set("gotoday",e),this.page="list"):(this.page="list",this.gotoday=moment().format("YYYY-MM-DD"),this.set("route.path",["/list",this.gotoday].join("/")))):this.page=t:(this.page="list",this.gotoday=moment().format("YYYY-MM-DD"),this.set("route.path",["/list",this.gotoday].join("/")))},_pageChanged:function(t){var e;return this.key&&(0===this.servermans.length&&this._setServermans(),0===this.setplaces.length&&(this.setplaces=this._setSetplaces())),Polymer.isInstance(this.$[t])?void this._pageLoaded():(e=this.resolveUrl("kb-"+t+".html"),void this.importHref(e,function(){this._pageLoaded()},this._showPage404,!0))},_pageLoaded:function(){this.loadComplete||Polymer.RenderStatus.afterNextRender(this,function(){this.importHref(this.resolveUrl("lazy-resources.html"),function(){"serviceWorker"in navigator&&navigator.serviceWorker.register("/service-worker.js"),this._notifyNetworkStatus(),this.loadComplete=!0})})},_notifyNetworkStatus:function(){var t=this.offline;this.offline=!navigator.onLine,(this.offline||!this.offline&&t===!0)&&(this.offline?this._showSnackbar("系统处于离线状态","err"):this._showSnackbar("网络连接就绪"))},_showSnackbar:function(t,e){this._networkSnackbar||(this._networkSnackbar=document.createElement("kb-snackbar"),Polymer.dom(this.root).appendChild(this._networkSnackbar)),Polymer.dom(this._networkSnackbar).innerHTML=t,this._networkSnackbar.open(e)},_showPage404:function(){this.page="view404"},_checkDate:function(t){var e,i,o,s=/^(\d{4})\-(\d{2})\-(\d{2})$/;return!!s.test(t)&&(e=new Date(t).getFullYear(),i=new Date,o=i.getFullYear(),!(e<1900||e>o)&&new Date(t).getDate()===Number(t.substring(t.length-2)))},_setServermans:function(){var t=this.getSio();t.emit("cemit-getServermans",{key:this.key},function(t){1===t.success&&(this.servermans=t.servermans)}.bind(this))},_setSetplaces:function(){var t=JSON.parse(window.localStorage.userobj).CITY;switch(t){case"深圳":return["6","2","0"];case"广州":return["2","16"];default:return["11"]}},onSetUserobj:function(t){this.userobj=t.detail,this.key=this.userobj.key,this.gotoday=moment().format("YYYY-MM-DD"),this.set("route.path",["/list",this.gotoday].join("/")),this.$.list.$.kbFullcalendar.goto()},onKbFullcalendarDayChanged:function(t){this.gotoday=t.detail,this.set("route.path",["/list",this.gotoday].join("/"))},onKbFullcalendarEventClick:function(t){var e=this.getSio();this.detail=t.detail,e.emit("cemit-getSmById",{key:this.key,id:this.detail.id},function(t){t.sm&&(this.sm=t)}.bind(this)),this.set("gotodayobj",{gotoday:this.gotoday}),this.set("selectedtab",0),this.set("route.path","/detail")},calendarDayChanged:function(){this.gotoday=event.detail,this.set("route.path",["/list",this.gotoday].join("/")),this.$.list.$.kbFullcalendar.goto()},onShowSnackbar:function(t){var e=t.detail;this._showSnackbar(e.innerHTML,e.type)},detailToList:function(){var t;this.gotoday?(this.set("route.path",["/list",this.gotoday].join("/")),this.$.list.$.kbFullcalendar.goto()):(t=window.localStorage.gotodayobj&&JSON.parse(window.localStorage.gotodayobj).gotoday,this.gotoday=t||moment.format("YYYY-MM-DD"),this.set("route.path",["/list",this.gotoday].join("/")),this.$.list.$.kbFullcalendar.goto())},onSmUpdate:function(t){var e=t.detail;1===e.success?this._showSnackbar("修改成功"):this._showSnackbar("修改失败","err")},logout:function(){this.key="",this.gotodayobj={},this.userobj={},this.detail={},this.sm={},this.set("route.path","/login")}});</script>
+</dom-module>
+</body></html>

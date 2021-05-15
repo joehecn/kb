@@ -1,0 +1,70 @@
+<html><head><link rel="import" href="../bower_components/polymer/polymer.html">
+
+<link rel="stylesheet" href="../bower_components/fullcalendar/dist/fullcalendar.css">
+
+<link rel="import" href="kb-jquery.html">
+<link rel="import" href="kb-moment.html">
+
+<script src="../bower_components/fullcalendar/dist/fullcalendar.js"></script>
+<script src="../bower_components/fullcalendar/dist/locale/zh-cn.js"></script>
+
+<link rel="import" href="kb-util-behavior.html">
+
+</head><body><dom-module id="kb-fullcalendar">
+  <style>
+    .fc-toolbar {
+      margin-bottom: 0;
+    }
+
+    .fc-unthemed .fc-today {
+      background-color: #dff0d8;
+    }
+
+    .fc-view-container {
+      text-shadow: 0 0 0;
+      font-size: 14px;
+    }
+
+    .fc-event {
+      border: 1px solid;
+    }
+
+    .fc-view,
+    .fc-view>table {
+      z-index: 0;
+    }
+
+    /* 日历 */
+
+    .label-danger {
+        background-color: #d9534f;
+    }
+
+    .label-warning {
+        background-color: #f0ad4e;
+    }
+
+    .label-success {
+        background-color: #5cb85c;
+    }
+
+    .label {
+      display: inline;
+      padding: .2em .6em .3em;
+      line-height: 1;
+      text-align: center;
+      white-space: nowrap;
+      vertical-align: baseline;
+      border-radius: .25em;
+    }
+
+    /* 列表 */
+    td.fc-list-item-time.fc-widget-content,
+    td.fc-list-item-marker.fc-widget-content {
+      display: none;
+    }
+  </style>
+
+  <script>!function(){"use strict";var t;Polymer({is:"kb-fullcalendar",behaviors:[KbUtilBehavior],created:function(){t=this.getSio(),this._container=document.createElement("div"),this.appendChild(this._container)},attached:function(){this.async(function(){var e=this;jQuery(e._container).fullCalendar({customButtons:{filterSetplace:{text:"全",click:function(t){var a,s,n=jQuery(t.target),l=n.text(),i=e.setplaces,r=i.length;r>1&&(a=i.indexOf(l)+1,s=i[a]||"全",n.text(s),e.ref())}}},buttonIcons:{today:"down-triangle"},header:{left:"",center:"prev,today,next",right:"agendaDay,listDay,filterSetplace"},height:function(){return document.body.clientHeight},defaultView:"agendaDay",views:{agendaDay:{allDayText:"总",slotDuration:"00:15:00",slotLabelFormat:"H",slotLabelInterval:"00:60:00",minTime:"00:00:00",maxTime:"26:00:00",slotEventOverlap:!1,nowIndicator:!0,columnFormat:"YYYY-MM-DD dddd"},listDay:{listDayFormat:"YYYY-MM-DD dddd",noEventsMessage:"让我找半天。。。没找到"}},defaultDate:e.gotoday,eventRender:function(t,e,a){var s;if("agendaDay"===a.name){var n,l="default",i="default",r="danger",o="danger",c="info",d="",m="",g="",p="",u="";if(t.allDay)return;switch(t.isHasNews&&(d='<span class="glyphicon glyphicon-volume-up" aria-hidden="true" style="color: red;"></span><br>'),"0"===t.phoneMsgStatus?g='<span class="label label-warning" style="padding-top: 0; padding-bottom: 0;">集合短信</span><br>':"1"===t.phoneMsgStatus?g='<span class="label label-success" style="padding-top: 0; padding-bottom: 0;">集合短信</span><br>':"2"===t.phoneMsgStatus&&(g='<span class="label label-info" style="padding-top: 0; padding-bottom: 0;">集合短信</span><br>'),t.flight_gai&&(p='<span class="label label-warning" style="padding-top: 0; padding-bottom: 0;">改签</span><br>'),n=t.flight.flightNum,t.flightState){case"计划":u='<span class="label label-default" style="padding-top: 0; padding-bottom: 0;">计划</span><br>';break;case"延误":u='<span class="label label-warning" style="padding-top: 0; padding-bottom: 0;">延误</span><br>';break;case"取消":u='<span class="label label-danger" style="padding-top: 0; padding-bottom: 0;">取消</span><br>';break;case"起飞":u='<span class="label label-success" style="padding-top: 0; padding-bottom: 0;">起飞</span><br>'}switch(t.flyingStatusClass&&(i=t.flyingStatusClass),t.djpState){case"已办理":l="danger";break;case"部分已领":l="warning";break;case"全部OK":l="success"}switch("已收"===t.smAgencyFundState&&(r="success"),"已付"===t.smPaymentState&&(o="success"),"n"===t.smSetPlace&&(c="danger"),t.smSetPlace){case"6":m=' style="color: #000;"';break;case"0":c="success";break;case"n":c="danger"}s=String()+d+"<span"+m+' class="label label-'+c+'">'+t.smSetPlace+"</span><span>"+t.start.format("HH:mm")+"</span><br>"+g+p+u+'<span class="label label-'+i+'" style="padding-top: 0; padding-bottom: 0;">'+n+'</span><br><span class="label label-'+l+'" style="padding-top: 0; padding-bottom: 0;">登机牌</span><br>'+t.smAgencyFund_html.replace("warning",r)+t.smPayment_html.replace("warning",o)+t.city_html+"<span>"+t.operator.substr(0,4)+"</span><br><span>"+t.smRealNumber+"人"+(1===t.smType2?"内":"外")+(1===t.smType1?"送":"接")+"</span></br><span>"+t.serverMan+"</span>"}else{if(t.allDay)return;s='<td class="fc-list-item-time fc-widget-content"></td><td class="fc-list-item-marker fc-widget-content"></td><td class="fc-list-item-title fc-widget-content" style="color: #fff; background-color: '+t.backgroundColor+';"><a>'+t.smSetPlace+"号门 "+t.start.format("HH:mm")+" "+t.flight.flightNum+" "+t.city_html+t.smRealNumber+"人"+(1===t.smType2?"内":"外")+(1===t.smType1?"送 ":"接<br>")+t.operator+"</a></td>"}e.html(s)},events:function(a,s,n,l){var i=moment(a).format("YYYY-MM-DD");e.gotoday!==i&&e.fire("kb-fullcalendar-day-changed",i),t.emit("cemit-getSms",{gotoday:i,key:e.key},function(t){var a;1===t.success&&(a=e._getDataObj(t.data).events,l(e._filterEvents(a)))})},eventClick:function(t,a,s){return!t.allDay&&void e.fire("kb-fullcalendar-event-click",t)}})}.bind(this),1)},_getSetTime:function(t,e){return moment(t).subtract(e,"m").format("HH:mm")},_computeSmStatus:function(t){return t>2?"完成":"未完成"},_getDataObj:function(t){var e,a,s=JSON.parse(window.localStorage.userobj).CITY,n=[],l={},i={};return t.kanbans.forEach(function(t){l[t.sm]=t}),t.setPlaces.forEach(function(t){switch(t.place){case"深圳机场T3出发厅6号门":i[t.airCode]="6";break;case"深圳机场T3出发厅2号门":i[t.airCode]="2";break;case"白云机场出发厅2号门":i[t.airCode]="2";break;case"白云机场出发厅16号门":i[t.airCode]="16";break;case"萧山机场B航站楼出发厅11号门":i[t.airCode]="11"}}),t.sms.forEach(function(t){e={id:t._id,team:t.team,smType2:t.smType2,operator:t.operator,flight:t.flight,smRealNumber:t.smRealNumber,insurance:t.insurance,smTimeSpace:t.smTimeSpace,smAgencyFund:t.smAgencyFund,phoneMsgStatus:t.phoneMsgStatus.toString(),smPayment:t.smPayment,serverState:this._computeSmStatus(t.smStatus)},0===e.flight.flightEndCity.indexOf(s)?(e.smType1=2,e.start=this._getSetTime(e.flight.flightEndTime,e.smTimeSpace),e.city_html="",e.smSetPlace="0"):(e.smType1=1,e.start=this._getSetTime(e.flight.flightStartTime,e.smTimeSpace),e.city_html="<span>"+e.flight.flightEndCity.split("(")[0]+"</span><br>",e.smSetPlace=i[e.flight.flightNum.substr(0,2)],"undefined"==typeof e.smSetPlace&&(e.smSetPlace="n")),0===e.smAgencyFund?e.smAgencyFund_html="":e.smAgencyFund_html='<span class="label label-warning" style="padding-top: 0; padding-bottom: 0;">代收'+e.smAgencyFund/-100+"</span><br>",0===e.smPayment?e.smPayment_html="":e.smPayment_html='<span class="label label-warning" style="padding-top: 0; padding-bottom: 0;">代付'+e.smPayment/100+"</span><br>",t.serverMan?e.serverMan=t.serverMan:e.serverMan="待定",e.backgroundColor="#3a87ad",e.borderColor="#2e6da4",l[e.id]&&(a=l[e.id],a.djpState&&(e.djpState=a.djpState),a.smSetPlace&&(e.smSetPlace=a.smSetPlace),a.flightState&&(e.flightState=a.flightState),a.smAgencyFundState&&(e.smAgencyFundState=a.smAgencyFundState),a.smPaymentState&&(e.smPaymentState=a.smPaymentState),a.serverState&&(e.serverState=a.serverState),a.djpNote&&(e.djpNote=a.djpNote),a.serverNote&&(e.serverNote=a.serverNote),a.flight_gai&&(e.flight_gai=a.flight_gai),a.historys&&(e.historys=a.historys),a.flyingStatusClass&&(e.flyingStatusClass=a.flyingStatusClass),a.wxServerState&&(e.wxServerState=a.wxServerState)),"完成"===e.serverState&&(e.backgroundColor="#77B5D3"),n.push(e)}.bind(this)),{events:n}},_filterEvents:function(t){var e,a=jQuery(".fc-filterSetplace-button").text();return"全"===a?this._addTongji(t):(e=t.filter(function(t){return t.smSetPlace===a}),this._addTongji(e))},_addTongji:function(t){var e,a,s,n,l=0,i=0,r=0,o=0,c=0,d=0,m=!0,g=t.length;for(e=0;e<g;e++)a=t[e],a.allDay?(m=!1,"total"===a.itemType?s=a:n=a):moment(this.gotoday).isSame(a.flight.flightDate,"day")&&(l++,1===a.smType1?(d+=a.insurance,i++):r++,o+=a.smRealNumber,"完成"===a.serverState&&c++);return m?(t.push({title:"共计: "+l+"团 "+i+"送 "+r+"接 "+o+"人 ",start:this.gotoday,allDay:!0,itemType:"total"}),t.push({title:"完成: "+c+"团 "+d+"份保险",start:this.gotoday,allDay:!0})):(s.title="共计: "+l+"团 "+i+"送 "+r+"接 "+o+"人",n.title="完成: "+c+"团 "+d+"份保险"),t},ref:function(){jQuery(this._container).fullCalendar("refetchEvents")},goto:function(){jQuery(this._container).fullCalendar("gotoDate",this.gotoday),this.ref()}})}();</script>
+</dom-module>
+</body></html>

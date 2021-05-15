@@ -1,0 +1,110 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+--><link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<!--
+An element providing a solution to no problem in particular.
+
+Example:
+
+    <dashboard-calendar-behavior></dashboard-calendar-behavior>
+
+Example:
+
+    <dashboard-calendar-behavior>
+      <h2>Hello dashboard-calendar-behavior</h2>
+    </dashboard-calendar-behavior>
+
+@demo demo/index.html
+@hero hero.svg
+-->
+
+<script>(function (namespace, behavior) {
+  'use strict';
+
+  (window[namespace] = window[namespace] || {})[behavior] = {
+    properties: {
+      isNowMonth: {
+        type: Boolean,
+        value: true
+      },
+      weekDay: {
+        type: Number
+      },
+      day: {
+        type: Number
+      },
+      activeDay: {
+        type: String,
+        notify: true
+      },
+      month: {
+        type: Number
+      },
+      year: {
+        type: Number
+      },
+      _weekDayNames: {
+        type: Array,
+        value: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+      },
+      _monthNames: {
+        type: Array,
+        value: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
+        /*_monthNames: {
+          type: Array,
+          value: [
+            'January',
+            'February',
+            'March',
+            'April',
+            'May',
+            'June',
+            'July',
+            'August',
+            'September',
+            'October',
+            'November',
+            'December'
+          ]
+        }*/
+
+      }
+    },
+    ready: function () {
+      this._newDay();
+    },
+    _newDay: function () {
+      var date = new Date();
+      var year = date.getFullYear();
+      var month = date.getMonth();
+      var day = date.getDate();
+
+      if (day === 1 || !this.year) {
+        this.set('year', year);
+        this.set('month', month);
+      }
+
+      this.set('weekDay', date.getDay());
+      this.set('day', day);
+      this.set('activeDay', year + '-' + this._preZero(this._monthName(month)) + '-' + this._preZero(day));
+      setTimeout(this._newDay.bind(this), new Date(year, month, day + 1) - date);
+    },
+    _weekDayName: function (value) {
+      return this._weekDayNames[value];
+    },
+    _monthName: function (value) {
+      return this._monthNames[value];
+    },
+    // 前导0
+    _preZero: function (value) {
+      return ('0' + value).substr(-2);
+    }
+  };
+})('AppCalendar', 'CalendarBehavior');</script>

@@ -1,0 +1,159 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<link rel="import" href="shop-input.html">
+<link rel="import" href="shop-button.html">
+<link rel="import" href="shop-common-styles.html">
+
+<dom-module id="kb-login">
+  <template>
+    <style include="shop-common-styles shop-button shop-input">
+      .main-frame {
+        transition: opacity 0.5s;
+        margin: 0;
+        padding: 20px;
+        overflow: hidden;
+      }
+
+      shop-input {
+        font-size: 13px;
+      }
+
+      .grid {
+        margin-top: 40px;
+        @apply(--layout-horizontal);
+      }
+
+      .grid > section {
+        @apply(--layout-flex);
+      }
+
+      .grid > section:not(:first-child) {
+        margin-left: 80px;
+      }
+
+      .row {
+        @apply(--layout-horizontal);
+        @apply(--layout-end);
+      }
+
+
+      .input-row > * {
+        @apply(--layout-flex);
+      }
+
+      .input-row > *:not(:first-child) {
+        margin-left: 8px;
+      }
+
+      @media (max-width: 767px) {
+
+        .grid {
+          display: block;
+          margin-top: 0;
+        }
+
+        .grid > section:not(:first-child) {
+          margin-left: 0;
+        }
+      }
+    </style>
+
+    <div class="main-frame">
+      <div class="subsection grid">
+        <form id="checkoutForm" is="iron-form">
+          <section>
+            <div class="row input-row">
+              <shop-input>
+                <input id="userName" name="userName" pattern="[A-Za-z0-9_]{2,15}" placeholder="用户名" required="" aria-labelledby="userNameLabel loginInfo">
+                <shop-md-decorator error-message="用户名不正确" aria-hidden="true">
+                  <label id="userNameLabel">用户名</label>
+                  <shop-underline></shop-underline>
+                </shop-md-decorator>
+              </shop-input>
+            </div>
+            <div class="row input-row">
+              <shop-input>
+                <input id="password" type="password" name="password" pattern=".{6,20}" placeholder="密码" required="" aria-labelledby="passwordLabel loginInfo">
+                <shop-md-decorator error-message="密码错误" aria-hidden="true">
+                  <label id="passwordLabel">密码</label>
+                  <shop-underline></shop-underline>
+                </shop-md-decorator>
+              </shop-input>
+            </div>
+            <shop-button responsive="" id="submitBox">
+              <input type="button" on-click="_submit" value="登 录">
+            </shop-button>
+          </section>
+        </form>
+      </div>
+    </div>
+  </template>
+
+  <script>'use strict';
+
+Polymer({
+  is: 'kb-login',
+  behaviors: [KbUtilBehavior],
+  _submit: function (e) {
+    var form = this.$.checkoutForm;
+    var sio;
+
+    if (this._validateSection(form)) {
+      sio = this.getSio();
+      sio.emit('cemit-login', {
+        userName: form.userName.value,
+        password: form.password.value
+      }, function (result) {
+        if (result.success === 1) {
+          this.fire('set-userobj', {
+            name: result.name,
+            CITY: result.CITY,
+            key: result.key
+          });
+        } else if (result.success === '10008') {
+          form.password.value = '';
+
+          this._validateSection(form); // form.elements[0].setAttribute('aria-invalid', 'true');
+
+        } else {
+          form.userName.value = '';
+
+          this._validateSection(form); // form.elements[0].setAttribute('aria-invalid', 'true');
+
+        }
+      }.bind(this));
+    }
+  },
+  _validateSection: function (form) {
+    var firstInvalid = false;
+
+    for (var el, i = 0; el = form.elements[i], i < form.elements.length; i++) {
+      if (el.checkValidity()) {
+        el.removeAttribute('aria-invalid');
+      } else {
+        if (!firstInvalid) {
+          // announce error message
+          if (el.nextElementSibling) {
+            this.fire('announce', el.nextElementSibling.getAttribute('error-message'));
+          }
+
+          if (el.scrollIntoViewIfNeeded) {
+            // safari, chrome
+            el.scrollIntoViewIfNeeded();
+          } else {
+            // firefox, edge, ie
+            el.scrollIntoView(false);
+          }
+
+          el.focus();
+          firstInvalid = true;
+        }
+
+        el.setAttribute('aria-invalid', 'true');
+      }
+    }
+
+    return !firstInvalid;
+  }
+});</script>
+</dom-module>

@@ -1,0 +1,113 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+--><link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<!--
+An element providing a solution to no problem in particular.
+
+Example:
+
+    <dashboard-layout></dashboard-layout>
+
+Example:
+
+    <dashboard-layout>
+      <h2>Hello dashboard-layout</h2>
+    </dashboard-layout>
+
+@group Dashboard Elements
+@demo demo/index.html
+@hero hero.svg
+-->
+
+<style is="custom-style">
+  :root {
+
+    --unit: 32px;
+    --margin: 2px;
+    --border: 2px;
+    --displacement: 2 * (var(--margin) + var(--border));
+
+    --buffer: {
+      margin: var(--margin);
+      /* border: var(--border) solid; */
+    };
+
+    --round: {
+      border-radius: 50%;
+    };
+
+    /* Unit-based heights and widths */
+
+    --width-1: {
+      width: calc(1 * var(--unit) - var(--displacement));
+    };
+
+    --height-1: {
+      height: calc(1 * var(--unit) - var(--displacement));
+    };
+
+    --width-2: {
+      width: calc(2 * var(--unit) - var(--displacement));
+    };
+
+    --height-2: {
+      height: calc(2 * var(--unit) - var(--displacement));
+    };
+
+    --width-3: {
+      width: calc(3 * var(--unit) - var(--displacement));
+    };
+
+    --height-3: {
+      height: calc(3 * var(--unit) - var(--displacement));
+    };
+
+    --width-4: {
+      width: calc(4 * var(--unit) - var(--displacement));
+    };
+
+    --height-4: {
+      height: calc(4 * var(--unit) - var(--displacement));
+    };
+
+    --width-5: {
+      width: calc(5 * var(--unit) - var(--displacement));
+    };
+
+    --height-5: {
+      height: calc(5 * var(--unit) - var(--displacement));
+    };
+
+    --width-6: {
+      width: calc(6 * var(--unit) - var(--displacement));
+    };
+
+    --height-6: {
+      height: calc(6 * var(--unit) - var(--displacement));
+    };
+
+    --width-7: {
+      width: calc(7 * var(--unit) - var(--displacement));
+    };
+
+    --height-7: {
+      height: calc(7 * var(--unit) - var(--displacement));
+    };
+
+    --width-8: {
+      width: calc(8 * var(--unit) - var(--displacement));
+    };
+
+    --height-8: {
+      height: calc(8 * var(--unit) - var(--displacement));
+    };
+
+  }
+</style>

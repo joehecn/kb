@@ -1,0 +1,317 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../bower_components/app-layout/app-header-layout/app-header-layout.html">
+<link rel="import" href="../bower_components/app-layout/app-header/app-header.html">
+
+<link rel="import" href="../bower_components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../bower_components/paper-radio-button/paper-radio-button.html">
+
+<dom-module id="kb-sms">
+  <template>
+    <style>
+      :host {
+        position: fixed;
+        background: #dff0d8;
+        z-index: 15;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+      }
+
+      app-header {
+        @apply(--layout-fixed-top);
+        z-index: 1;
+        /*color: #fff;*/
+        /*background-color: var(--app-primary-color);*/
+        background-color: #efefef;
+        --app-header-shadow: {
+          box-shadow: inset 0px 5px 6px -3px rgba(0, 0, 0, 0.2);
+          height: 10px;
+          bottom: -10px;
+        }
+      }
+
+      #kbSms {
+        position: relative;
+      }
+
+      .submit-btn {
+        position: absolute;
+        height: 30px;
+        line-height: 30px;
+        text-decoration: none;
+        padding: 0 10px;
+        border: none;
+        border-radius: 4px;
+        top: 4px;
+        right: 10px;
+        cursor: pointer;
+      }
+
+      .green {
+        height: 32px;
+        background-color: var(--paper-green-500);
+        color: white;
+      }
+
+      .content {
+        @apply(--layout-flex);
+      }
+
+      #smsTextarea {
+        width: 95%;
+        height: 100px;
+      }
+
+      .item {
+        padding: 8px;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+        background-color: #fff;
+      }
+
+      .iTime {
+        display: inline-block;
+        width: 40px;
+      }
+
+      .close {
+        width: 16px;
+        height: 16px;
+      }
+
+      #messages {
+        overflow-y: scroll;
+      }
+    </style>
+
+    <app-localstorage-document key="messages" data="{{messages}}">
+    </app-localstorage-document>
+
+    <app-header-layout fullbleed="" has-scrolling-region="">
+      <app-header id="header" role="navigation" fixed="">
+
+        <div id="kbSms">
+          <div>
+            <paper-icon-button class="close-btn" icon="close" on-tap="_gotoPage" aria-label="Categories">
+            </paper-icon-button>
+            <span>发送消息</span>
+            <template is="dom-if" if="[[!showOperator]]">
+              <template is="dom-if" if="[[computeSmsTypeSelected]]">
+                <a href$="sms:[[phone]]?body=[[sms]]" class="submit-btn green">发送短信</a>
+              </template>
+              <template is="dom-if" if="[[!computeSmsTypeSelected]]">
+                <paper-button on-tap="_sendWXMessage" disabled$="{{disabledsend}}" class="submit-btn green">发送微信</paper-button>
+              </template>
+            </template>
+          </div>
+        </div>
+      </app-header>
+
+      <div class="content">
+        <div style="text-align: center; padding: 8px;">
+
+          <div style="text-align: left;">
+            to: <input style="width: 100px;" value="{{phone::input}}">
+            <paper-button style="margin-bottom: 8px; height: 24px;" on-tap="_toggleOperator" raised="">
+              {{operator}}
+            </paper-button>
+          </div>
+
+          <template is="dom-if" if="[[!showOperator]]">
+            <textarea id="smsTextarea" value="{{sms::input}}"></textarea>
+            <div style="text-align: left;">
+              <paper-button style="margin-bottom: 8px;" on-tap="_addMessage" raised="">
+                添加常用语
+              </paper-button>
+              <paper-radio-group selected="{{smsTypeSelected}}">
+                <paper-radio-button name="1" disabled$="{{disabledupdate}}">微信</paper-radio-button>
+                <paper-radio-button name="2">短信</paper-radio-button>
+              </paper-radio-group>
+            </div>
+
+            <div class="item" on-tap="_onTapOkSms">
+              <span>{{okSms}}</span>
+            </div>
+
+            <div id="messages">
+              <template is="dom-repeat" items="[[messages]]">
+                <div class="item">
+                  <span class="iTime" on-tap="_removeMessage"><iron-icon class="close" icon="close"></iron-icon></span>
+                  <span style="display: inline-block; width: calc(100% - 50px);" on-tap="_onTapSms">{{item}}</span>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <template is="dom-if" if="[[showOperator]]">
+            <template is="dom-if" if="[[disabledupdate]]">
+              <p>专线操作人还没有关注我们的微信企业号</p>
+              <h3 style="text-align: left;">三种邀请关注方式</h3>
+              <h4 style="text-align: left;">方式一：二维码邀请</h4>
+              <p style="text-align: left;">将下方二维码发给对方扫码关注</p>
+              <img src="/images/qrcode.jpg" alt="阳光服务二维码">
+              <h4 style="text-align: left;">方式二：企业号名片邀请</h4>
+              <p style="text-align: left;">可以在微信中向对方分享我们的企业号名片，群里有名片</p>
+              <h4 style="text-align: left;">方式三：搜索关注</h4>
+              <p style="text-align: left;">客户可通过微信搜索“企业号 智享阳光服务”找到并关注我们</p>
+            </template>
+            <template is="dom-if" if="[[!disabledupdate]]">
+              <div style="background-color: #5cb85c; color: #fff; padding: 8px; border-radius: 4px;">
+                <p style="text-align: center; font-size: 18px;">已关注微信企业号</p>
+              </div>
+            </template>
+          </template>
+        </div>
+      </div>
+    </app-header-layout>
+  </template>
+
+  <script>'use strict';
+
+Polymer({
+  is: 'kb-sms',
+  behaviors: [KbUtilBehavior],
+  properties: {
+    disabledsend: {
+      type: Boolean,
+      value: false
+    },
+    phone: {
+      type: String,
+      value: ''
+    },
+    operator: {
+      type: String,
+      value: ''
+    },
+    showOperator: {
+      type: Boolean,
+      value: false
+    },
+    disabledupdate: {
+      type: Boolean,
+      value: true
+    },
+    smsTypeSelected: {
+      type: String,
+      value: '2'
+    },
+    computeSmsTypeSelected: {
+      type: Boolean,
+      computed: '_computeSmsTypeSelected(smsTypeSelected)'
+    },
+    okSms: {
+      type: String,
+      value: ''
+    },
+    sms: {
+      type: String,
+      value: ''
+    },
+    messages: {
+      type: Array,
+      value: []
+    }
+  },
+  observers: ['_smChanged(sm, userobj)'],
+  _computeSmsTypeSelected: function (smsTypeSelected) {
+    return smsTypeSelected === '2';
+  },
+  _getWXInfo: function () {
+    // 异步调用微信接口查询此号码是否在微信通讯录中
+    // 如果没有则自动添加
+    // 以及是否已经关注我们的企业号
+    // 先检查 phone 是否符合规范
+    var reg = /^1\d{10}$/;
+
+    if (reg.test(this.phone)) {
+      var sio = this.getSio();
+      sio.emit('cemit-getWXInfo', {
+        key: this.key,
+        phone: this.phone,
+        operator: this.operator,
+        cid: this.sm.sm.company
+      }, function (result) {
+        if (result.success === 1 && result.body.status === 1) {
+          // 说明用户已经关注我们了, 可以发微信了
+          this.set('smsTypeSelected', '1');
+          this.set('disabledupdate', false);
+        }
+      }.bind(this));
+    }
+  },
+  _smChanged: function (sm, userobj) {
+    if (sm && sm.sm && sm.sm.operator) {
+      this.phone = sm.sm.operator.match(/\d{11}/)[0];
+      this.operator = sm.sm.operator.replace(this.phone, ''); // 异步调用微信接口查询此号码是否在微信通讯录中
+      // 如果没有则自动添加
+      // 以及是否已经关注我们的企业号
+
+      this.set('smsTypeSelected', '2');
+      this.set('disabledupdate', true);
+
+      this._getWXInfo();
+
+      var smNum = this.getSmNum(sm.sm, userobj);
+      this.okSms = '您好,' + smNum + '团已完成,一切顺利!(阳光服务)';
+      this.async(function () {
+        document.querySelector('#messages').style.height = document.body.clientHeight - 320 + 'px';
+      }, 1);
+    }
+  },
+  _toggleOperator: function () {
+    this.showOperator = !this.showOperator;
+  },
+  _onTapOkSms: function () {
+    this.set('sms', this.okSms);
+  },
+  _addMessage: function () {
+    this.push('messages', this.sms);
+  },
+  _removeMessage: function (event) {
+    this.splice('messages', event.model.index, 1);
+  },
+  _onTapSms: function (event) {
+    this.set('sms', event.model.item);
+  },
+  _sendWXMessage: function () {
+    if (this.sms) {
+      this.disabledsend = true;
+      var sio = this.getSio();
+      sio.emit('cemit-sendWXMessage', {
+        key: this.key,
+        userNames: [this.phone],
+        msg: this.sms,
+        sm: this.detail.id,
+        name: this.userobj.name,
+        set: {
+          wxServerState: true
+        }
+      }, function (result) {
+        this.disabledsend = false;
+
+        if (result.success === 1) {
+          // this.set('detail.wxServerState', true)
+          this.fire('show-snackbar', {
+            innerHTML: '发送成功'
+          });
+        } else {
+          this.fire('show-snackbar', {
+            innerHTML: '出现异常 - 通知何苗',
+            type: 'err'
+          });
+        }
+      }.bind(this));
+    }
+  },
+  _gotoPage: function () {
+    this.set('sms', '');
+    this.set('showOperator', false);
+    this.fire('goto-page', {
+      page: 0
+    });
+  }
+});</script>
+</dom-module>

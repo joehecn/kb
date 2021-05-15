@@ -1,0 +1,43 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<dom-module id="kb-history">
+  <template>
+    <style>
+      h3.title {
+        position: absolute;
+        left: 40px;
+      }
+
+      .item:first-child {
+        border-top: 1px solid #ddd;
+      }
+
+      .item {
+        padding: 4px 8px;
+        border-bottom: 1px solid #ddd;
+      }
+
+      .iTime {
+        display: inline-block;
+        width: 40px;
+      }
+    </style>
+    
+    <div style="height: 40px; position: relative;">
+      <h3 class="title">历史记录</h3>
+    </div>
+
+    <template is="dom-repeat" items="[[historys]]">
+      <div class="item">
+        <span class="iTime">{{item.iTime}}</span>
+        <span inner-h-t-m-l="{{item.iText}}"></span>
+      </div>
+    </template>
+  </template>
+
+  <script>'use strict';
+
+Polymer({
+  is: 'kb-history'
+});</script>
+</dom-module>

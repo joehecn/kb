@@ -1,0 +1,811 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../bower_components/app-layout/app-header-layout/app-header-layout.html">
+<link rel="import" href="../bower_components/app-layout/app-header/app-header.html">
+
+<link rel="import" href="../bower_components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../bower_components/paper-radio-button/paper-radio-button.html">
+
+<link rel="import" href="./kb-insurance-item.html">
+<link rel="import" href="./kb-rsa/kb-rsa.html">
+<link rel="import" href="./kb-md5/kb-md5.html">
+
+<dom-module id="kb-insurance">
+  <template>
+    <style>
+      :host {
+        position: fixed;
+        background: #dff0d8;
+        z-index: 15;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+      }
+
+      app-header {
+        @apply(--layout-fixed-top);
+        z-index: 1;
+        /*color: #fff;*/
+        /*background-color: var(--app-primary-color);*/
+        background-color: #efefef;
+        --app-header-shadow: {
+          box-shadow: inset 0px 5px 6px -3px rgba(0, 0, 0, 0.2);
+          height: 10px;
+          bottom: -10px;
+        }
+      }
+
+      #kbInsurance {
+        position: relative;
+      }
+
+      .top-info {
+        position: absolute;
+        top: 36px;
+        left: 55px;
+      }
+
+      .top-input-group {
+        text-align: center;
+        padding: 10px 0 0 0;
+      }
+
+      .top-input-group input {
+        width: 45%;
+        padding: 4px;
+      }
+
+      paper-button.submit-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+      }
+
+      paper-button.green {
+        height: 32px;
+        background-color: var(--paper-green-500);
+        color: white;
+      }
+
+      paper-button.green[disabled] {
+        background-color: var(--paper-red-500);
+      }
+
+      .content {
+        @apply(--layout-flex);
+      }
+    </style>
+
+    <app-header-layout fullbleed="" has-scrolling-region="">
+      <app-header id="header" role="navigation" fixed="">
+
+        <div id="kbInsurance">
+          <div>
+            <span class="top-info">选择 [[selectednum]] | 剩余 {{leftCardsNum}}</span>
+            <paper-icon-button class="close-btn" icon="close" on-tap="_gotoPage" aria-label="Categories">
+            </paper-icon-button>
+            <paper-radio-group selected="{{cardTypeSelected}}">
+              <paper-radio-button name="3">优</paper-radio-button>
+              <paper-radio-button name="1">平</paper-radio-button>
+              <paper-radio-button name="2">人</paper-radio-button>
+            </paper-radio-group>
+            <paper-button toggles="" raised="" class="submit-btn green" disabled$="{{disabledsubmit}}" on-tap="_submit">提交</paper-button>
+          </div>
+          <div class="top-input-group">
+            <input placeholder="手机号码" value="{{phone::input}}">
+            <input placeholder="保险卡尾号" value="{{shortCardNum::input}}">
+          </div>
+        </div>
+      </app-header>
+
+      <div class="content">
+        <template is="dom-repeat" items="[[filterPersons]]">
+          <kb-insurance-item person="[[item]]" index="[[index]]" on-close-child="onCloseChild" on-toggle-person="onTogglePerson"></kb-insurance-item>
+        </template>
+      </div>
+    </app-header-layout>
+
+  </template>
+
+  <script>(function () {
+  'use strict';
+
+  var PBK = '00a3acc5de564f3fcd9f3b3f7e9d44a4cb082a8d4706256ec989aba3619ec961e4c09544d5478b82d33d263addd450aa5d13d666ba3a57ca0173672da826d6d1e79aaf36065eb390f1a5d48d0132dcc6f19ce0543f4b23113f356db0765b077e3172928b0bc32a03ec2ac4757a0955c1437dc8a33b9f0f59dfd2cbc75911bdb217';
+  var pinganNumObj = {
+    '11100011100000001001110000111110001111100011111000111110001111100011111000111110100111001000000011100011': 0,
+    '11000111000001110000011111100111111001111110011111100111111001111110011111100111111001110000000000000000': 1,
+    '10000011000000010111110011111100111111001111100111110011111001111100111110011111001111110000000000000000': 2,
+    '10000011000000000111110011111100111110011000001110000001111110001111110011111100011110000000000110000011': 3,
+    '11111001111100011111000111100001110010011100100110011001100110010000000000000000111110011111100111111001': 4,
+    '00000000000000000011111100111111001111110000011100000001111110001111110011111100011110000000000110000011': 5,
+    '11100001110000001001111010011111001111110010000100000000000111000011111000111110100111001000000011100001': 6,
+    '00000000000000001111110011111101111110011111001111110111111001111110111111001111110011111001111110011111': 7,
+    '11000001100000001001110010011100100011011100000111000001100110000011111000111110000111001000000011000001': 8,
+    '11000011100000000001110000111110001111100001110010000000110000101111111011111100101111001000000111000011': 9
+  };
+  var chinaNumObj = {
+    '11100001110000001000110000011110000111100001111000011110000111100001111000011110100011001100000011100001': 0,
+    '11100011000000110000001111100011111000111110001111100011111000111110001111100011111000110000000000000000': 1,
+    '10000001000000000111100011111100111111001111110011111001111100111100011110001111000111110000000000000000': 2,
+    '10000011000000010111100011111000111100001000001110000011111100011111100011111000011100000000000110000011': 3,
+    '11111100111110001111000011100100111001001100110010011100001111000000000000000000111111001111110011111100': 4,
+    '00000000000000000011111100111111000001110000000111110000111110001111100011111000011100000000000110000111': 5,
+    '11100000110000001000011110001111000111110001000000000000000011000001111000011110100011001100000011100000': 6,
+    '00000000000000001111111011111100111110011111100111110011111000111110011111000111110011111000111110001111': 7,
+    '11100001110000001000110010001100100001001100000011000000100010000001110000011110000011101000000011000000': 8,
+    '11000001100000000000110000011110000111100000110010000000110000101111111011111100101110001000000011000001': 9
+  };
+
+  var setNumArr = function (numObj) {
+    var numArr = [];
+    var keyObj = {};
+    var key;
+    var i;
+    var itemArr;
+    var j;
+    var arr;
+
+    for (key in numObj) {
+      keyObj[numObj[key]] = key;
+    }
+
+    for (i = 0; i < 10; i++) {
+      arr = keyObj[i].split('');
+      itemArr = [];
+
+      for (j = 0; j < 104; j++) {
+        if (arr[j] === '0') {
+          itemArr.push(j);
+        }
+      }
+
+      numArr.push(itemArr);
+    }
+
+    return numArr;
+  };
+
+  var pinganNumArr = setNumArr(pinganNumObj);
+  var chinaNumArr = setNumArr(chinaNumObj);
+
+  var catRow = function (arr, height, type) {
+    var cat = [];
+    var len = arr.length;
+    var i;
+    var j;
+    var pixelSum;
+    var row;
+
+    for (i = 0; i < height; i++) {
+      pixelSum = 0;
+      row = [];
+
+      for (j = 0; j < len; j++) {
+        pixelSum += arr[j][i];
+        row.push(arr[j][i]);
+      }
+
+      if (pixelSum < len) {
+        cat.push(row.join('').substr(0, 8));
+      }
+    }
+
+    return convertNum(cat.join(''), type);
+  };
+
+  var convertNum = function (str, type) {
+    var maxObj = {
+      key: 0,
+      max: 0
+    };
+    var numObj;
+    var numArr;
+    var ilen;
+    var i;
+    var itemArr;
+    var step;
+    var jlen;
+    var j;
+
+    if (type === '1') {
+      numObj = pinganNumObj;
+      numArr = pinganNumArr;
+    } else {
+      numObj = chinaNumObj;
+      numArr = chinaNumArr;
+    }
+
+    if (numObj[str]) {
+      return numObj[str];
+    } else {
+      ilen = numArr.length;
+
+      for (i = 0; i < ilen; i += 1) {
+        itemArr = numArr[i];
+        step = 0;
+        jlen = itemArr.length;
+
+        for (j = 0; j < jlen; j += 1) {
+          if (str[itemArr[j]] === '0') {
+            step++;
+          }
+        }
+
+        if (step > maxObj.max) {
+          maxObj = {
+            key: i,
+            max: step
+          };
+        }
+      }
+
+      return maxObj.key;
+    }
+  };
+
+  var convertImg = function (data, type, callback) {
+    var canvas = document.createElement('CANVAS');
+    var ctx = canvas.getContext('2d');
+    var img = new Image();
+    img.crossOrigin = 'Anonymous';
+
+    img.onerror = function (e) {
+      // console.log(e)
+      callback('', null);
+    };
+
+    img.onload = function () {
+      var codeArr = [];
+      var height = img.height;
+      var width = img.width;
+      var len = height * 4;
+      var isPush = false;
+      var pixelArr = [];
+      var i;
+      var pixels;
+      var columnArr;
+      var pixelSum;
+      var j;
+      var pixel;
+      canvas.height = height;
+      canvas.width = width;
+      ctx.drawImage(img, 0, 0);
+
+      for (i = 0; i < width; i++) {
+        pixels = ctx.getImageData(i, 0, 1, height).data;
+        columnArr = [];
+        pixelSum = 0;
+
+        for (j = 0; j < len; j += 4) {
+          pixel = +(pixels[j] > 160 && pixels[j + 1] > 160 && pixels[j + 2] > 160);
+          pixelSum += pixel;
+          columnArr.push(pixel);
+        }
+
+        if (pixelSum === height) {
+          if (isPush === true) {
+            codeArr.push(catRow(pixelArr, height, type));
+            pixelArr = [];
+            isPush = false;
+          }
+        } else {
+          isPush = true;
+        }
+
+        if (isPush) {
+          pixelArr.push(columnArr);
+        }
+      }
+
+      callback(codeArr.join(''), img);
+      canvas = null;
+    };
+
+    img.src = data;
+  };
+
+  var rsaPassword = function (password) {
+    return RSA.encrypt({
+      key: PBK,
+      input: password
+    });
+  };
+
+  Polymer({
+    is: 'kb-insurance',
+    behaviors: [KbUtilBehavior],
+    properties: {
+      disabledsubmit: {
+        type: Boolean,
+        value: false
+      },
+      filterPersons: {
+        type: Array,
+        value: []
+      },
+      cardTypeSelected: {
+        type: String,
+        value: '3'
+      },
+      cards: {
+        type: Array
+      },
+      shortCardNum: {
+        type: String
+      },
+      filterCards: {
+        type: Array
+      },
+      selectednum: {
+        type: Number
+      },
+      leftCardsNum: {
+        type: Number
+      },
+      phone: {
+        type: String,
+        value: ''
+      }
+    },
+    observers: ['_cardTypeSelectedChanged(ukecards.length, pancards.length, rsocards.length, cardTypeSelected)', '_shortCardNumChanged(shortCardNum)', '_filterCardsChanged(filterCards.length, selectednum)', // 剩余
+    '_oldcardsChanged(oldcards)'],
+    _cardTypeSelectedChanged: function (ukelen, panlen, rsolen, cardTypeSelected) {
+      // console.info('_cardTypeSelectedChanged - ', cardTypeSelected === '1' ? '平安' : '人寿')
+      // 重置数据 - 初始化
+      var cards; // 选择 0
+
+      this.set('selectednum', 0);
+
+      this._emptyPinganCardNums(this.filterPersons);
+
+      if (cardTypeSelected === '3') {
+        cards = this.ukecards;
+      } else if (cardTypeSelected === '1') {
+        cards = this.pancards;
+      } else {
+        cards = this.rsocards;
+      }
+
+      this.set('cards', cards);
+
+      if (this.shortCardNum) {
+        this.set('shortCardNum', '');
+      } else {
+        // this.set('filterCards', this._cloneObj(cards))
+        this.set('filterCards', this._filterCardsByShortCardNum(this.cards, ''));
+      }
+    },
+    _shortCardNumChanged: function (shortCardNum) {
+      // console.info('_shortCardNumChanged - ', shortCardNum)
+      var shortCardNum = shortCardNum.trim();
+      this.set('filterCards', this._filterCardsByShortCardNum(this.cards, shortCardNum)); // if (shortCardNum) {
+      //   this.set('filterCards', this._filterCardsByShortCardNum(this.cards, shortCardNum))
+      // } else {
+      //   this.set('filterCards', this._cloneObj(this.cards))
+      // }
+
+      this._setAfterPinganCardNums(this.filterPersons);
+    },
+    _filterCardsChanged: function (filterCardslen, selectednum) {
+      // console.info('_filterCardsChanged - 剩余:', filterCardslen - selectednum)
+      this.set('leftCardsNum', filterCardslen - selectednum);
+    },
+    _oldcardsChanged: function (oldcards) {
+      // console.info('_oldcardsChanged')
+      var _oldcards = this._cloneObj(oldcards);
+
+      this.filterPersons = this._setFilterPersons(_oldcards);
+    },
+    _cloneObj: function (obj) {
+      return JSON.parse(JSON.stringify(obj));
+    },
+    _filterCardsByShortCardNum: function (cards, shortCardNum) {
+      var cards = this._cloneObj(cards);
+
+      if (shortCardNum) {
+        var slen = shortCardNum.length;
+        var index = -1;
+        var len = cards.length;
+        var i;
+        var pinganCardNum;
+        var plen;
+
+        for (i = 0; i < len; i++) {
+          pinganCardNum = cards[i].pinganCardNum;
+          plen = pinganCardNum.length;
+
+          if (pinganCardNum.substr(plen - slen, slen) === shortCardNum) {
+            index = i;
+            break;
+          }
+        }
+
+        cards.splice(0, index);
+      } // console.log(cards)
+
+
+      return cards.filter(function (card) {
+        return !card.__posted__;
+      });
+    },
+    _setFilterPersons: function (cards) {
+      var persons = this._cloneObj(this.persons);
+
+      return persons.map(function (person) {
+        var len = cards.length;
+        var i;
+        var card;
+
+        for (i = 0; i < len; i++) {
+          card = cards[i]; // console.log(card.cardNum)
+          // console.log(person.cardNum)
+          // console.log(card.cardNum.trim() === person.cardNum.trim())
+
+          if (card.cardNum.trim() === person.cardNum.trim()) {
+            person.pinganCardNum = card.pinganCardNum;
+            person.cardType = card.cardType;
+            cards.splice(i, 1);
+            return person;
+          }
+        }
+
+        return person;
+      });
+    },
+    _emptyPinganCardNums: function (filterPersons) {
+      var len = filterPersons.length;
+      var i;
+
+      for (i = 0; i < len; i++) {
+        if (filterPersons[i].__pinganCardNum__) {
+          this.set('filterPersons.' + i + '.__pinganCardNum__', '');
+          this.set('filterPersons.' + i + '.__locking__', false);
+        }
+      }
+    },
+    _setAfterPinganCardNums: function (filterPersons) {
+      var len = filterPersons.length;
+      var index = 0;
+      var i;
+
+      for (i = 0; i < len; i++) {
+        if (filterPersons[i].__pinganCardNum__) {
+          this.set('filterPersons.' + i + '.__index__', this.filterCards[index].__index__);
+          this.set('filterPersons.' + i + '.__pinganCardNum__', this.filterCards[index].pinganCardNum);
+          this.set('filterPersons.' + i + '.__id__', this.filterCards[index]._id);
+          this.set('filterPersons.' + i + '.__password__', this.filterCards[index].password);
+          index++;
+        }
+      }
+    },
+    onCloseChild: function (event) {
+      var detail = event.detail;
+      var index = detail.index;
+      var setPath = 'filterPersons.' + index + '.__errMsg__';
+      this.set(setPath, -1);
+    },
+    onTogglePerson: function (event) {
+      var detail = event.detail;
+      var index = detail.index;
+      var setPath = 'filterPersons.' + index + '.__pinganCardNum__';
+      var item = this.filterPersons[index];
+
+      var _index;
+
+      if (!item.__pinganCardNum__) {
+        // 检查有没有剩余保险卡
+        if (this.leftCardsNum < 1) {
+          this.fire('show-snackbar', {
+            innerHTML: '大哥, 没卡了。。。',
+            type: 'err'
+          }); // 回退到没选择状态
+          // event.target.set('isSelect', false)
+
+          return;
+        } // 动作 选择
+
+
+        this.set('selectednum', this.selectednum + 1);
+        this.set(setPath, '__pinganCardNum__'); // 占位
+
+        this._setAfterPinganCardNums(this.filterPersons);
+
+        if (detail.phone) {
+          this.set('phone', detail.phone);
+        }
+      } else {
+        // 动作 取消选择
+        this.set('selectednum', this.selectednum - 1);
+        this.set(setPath, '');
+
+        this._setAfterPinganCardNums(this.filterPersons);
+      }
+    },
+    _submit: function () {
+      // 检查手机号码
+      if (this.phone === '') {
+        this.fire('show-snackbar', {
+          innerHTML: '手机号码必须有',
+          type: 'err'
+        });
+        return;
+      } // OK 准备开卡
+
+
+      var hasPosts = false;
+      var postsLength = 0;
+      this.set('disabledsubmit', true);
+      var len = this.filterPersons.length;
+      var i;
+      var person;
+      var obj;
+
+      for (i = 0; i < len; i++) {
+        person = this.filterPersons[i];
+
+        if (person.__pinganCardNum__) {
+          hasPosts = true;
+          postsLength++;
+          this.set('filterPersons.' + i + '.__locking__', true);
+          obj = {
+            index: i,
+            key: this.key,
+            sm: this.detail.id,
+            phone: this.phone,
+            // codeNum
+            card: {
+              _id: person.__id__,
+              pinganCardNum: person.__pinganCardNum__,
+              __index__: person.__index__ // password: password
+
+            },
+            person: {
+              _id: person._id,
+              name: person.name,
+              cardCategory: person.cardCategory,
+              cardNum: person.cardNum,
+              birthday: person.birthday,
+              sex: person.sex
+            },
+            // cookies: [],
+            tryCount: 0 // success: 1,
+
+          };
+
+          if (this.cardTypeSelected === '3') {
+            obj.card.password = person.__password__;
+
+            var _self = this;
+
+            this._postToUkeax(obj, function (res) {
+              // res.success = 99
+              _self.set('filterPersons.' + res.index + '.__locking__', false);
+
+              _self.set('filterPersons.' + res.index + '.__errMsg__', res.success);
+
+              if (res.success === 99) {
+                _self.set('filterPersons.' + res.index + '.__pinganCardNum__', '');
+
+                _self.set('filterPersons.' + res.index + '.pinganCardNum', res.card.pinganCardNum);
+
+                _self.set('filterPersons.' + res.index + '.cardType', 3);
+              }
+
+              if (res.success === 99 || res.success === 11) {
+                // 删卡
+                _self.set('selectednum', _self.selectednum - 1);
+
+                _self.set('ukecards.' + res.card.__index__ + '.__posted__', true);
+              }
+
+              postsLength--;
+
+              if (postsLength === 0) {
+                // 重新计算 filterCards
+                _self.set('cards', _self.ukecards);
+
+                _self.set('filterCards', _self._filterCardsByShortCardNum(_self.cards, _self.shortCardNum));
+
+                _self.set('disabledsubmit', false);
+              }
+            });
+          } else if (this.cardTypeSelected === '1') {
+            obj.card.password = rsaPassword(person.__password__);
+
+            this._postToPingan(obj, function (res) {
+              // res.success = 99
+              this.set('filterPersons.' + res.index + '.__locking__', false);
+              this.set('filterPersons.' + res.index + '.__errMsg__', res.success);
+
+              if (res.success === 99) {
+                this.set('filterPersons.' + res.index + '.__pinganCardNum__', '');
+                this.set('filterPersons.' + res.index + '.pinganCardNum', res.card.pinganCardNum);
+                this.set('filterPersons.' + res.index + '.cardType', 1);
+              }
+
+              if (res.success === 99 || res.success === 11 || res.success === 12) {
+                // 删卡
+                this.set('selectednum', this.selectednum - 1);
+                this.set('pancards.' + res.card.__index__ + '.__posted__', true);
+              }
+
+              postsLength--;
+
+              if (postsLength === 0) {
+                // 重新计算 filterCards
+                this.set('cards', this.pancards);
+                this.set('filterCards', this._filterCardsByShortCardNum(this.cards, this.shortCardNum));
+                this.set('disabledsubmit', false);
+              }
+            }.bind(this));
+          } else {
+            // obj.card.password = hex_md5(person.__password__)
+            // http://www.e-chinalife.com/selfcard/selfcard/validate_js/cardNoPwForm.js
+            //ll 取消base64加密，换成md5盐值加密 2016年8月8号
+            var Password_part1 = hex_md5(person.__password__);
+            var Password_part2 = hex_md5('KEY');
+            obj.card.password = hex_md5(Password_part1 + Password_part2);
+
+            this._postToChina(obj, function (res) {
+              // res.success = 99
+              this.set('filterPersons.' + res.index + '.__locking__', false);
+              this.set('filterPersons.' + res.index + '.__errMsg__', res.success);
+
+              if (res.success === 99) {
+                this.set('filterPersons.' + res.index + '.__pinganCardNum__', '');
+                this.set('filterPersons.' + res.index + '.pinganCardNum', res.card.pinganCardNum);
+                this.set('filterPersons.' + res.index + '.cardType', 2);
+              }
+
+              if (res.success === 99 || res.success === 11) {
+                // 删卡
+                this.set('selectednum', this.selectednum - 1);
+                this.set('rsocards.' + res.card.__index__ + '.__posted__', true);
+              }
+
+              postsLength--;
+
+              if (postsLength === 0) {
+                // 重新计算 filterCards
+                this.set('cards', this.rsocards);
+                this.set('filterCards', this._filterCardsByShortCardNum(this.cards, this.shortCardNum));
+                this.set('disabledsubmit', false);
+              }
+            }.bind(this));
+          }
+        }
+      }
+
+      if (hasPosts === false) {
+        this.set('disabledsubmit', false);
+        this.fire('show-snackbar', {
+          innerHTML: '没找到要开卡的客人啊?',
+          type: 'err'
+        });
+      }
+    },
+    _chinaDownloadImg: function (obj, callback) {
+      // 1 获取验证码
+      var sio = this.getSio();
+      sio.emit('cemit-chinaDownloadImg', {
+        key: obj.key
+      }, function (result) {
+        // console.log(result)
+        if (result.success === 1) {
+          convertImg(result.data, '2', function (code, img) {
+            // console.log(code)
+            if (code) {
+              obj.cookies = result.cookies;
+              obj.codeNum = code;
+              callback({
+                success: 1,
+                obj: obj
+              });
+            } else {
+              // img.onerror
+              callback({
+                success: 'onerror'
+              });
+            }
+          });
+        } else {
+          // err
+          callback({
+            success: 'err'
+          });
+        }
+      });
+    },
+    _postToChina: function (obj, callback) {
+      var sio = this.getSio();
+
+      var _self = this;
+
+      var _compDownloadImg = function (result) {
+        if (result.success === 1) {
+          // console.log('cemit-chinaPostData')
+          // console.log(result.obj)
+          sio.emit('cemit-chinaPostData', result.obj, function (res) {
+            // console.log(res)
+            if (res.success === 10 && res.tryCount < 3) {
+              _self._chinaDownloadImg(res, _compDownloadImg);
+            } else {
+              callback(res);
+            }
+          });
+        } else {
+          callback(result);
+        }
+      }; // 获取验证码
+
+
+      this._chinaDownloadImg(obj, _compDownloadImg);
+    },
+    _pinganDownloadImg: function (obj, callback) {
+      // 1 获取验证码
+      var sio = this.getSio();
+      sio.emit('cemit-pinganDownloadImg', {
+        key: obj.key
+      }, function (result) {
+        // console.log(result)
+        if (result.success === 1) {
+          convertImg(result.data, '1', function (code, img) {
+            // console.log(code)
+            if (code) {
+              obj.cookies = result.cookies;
+              obj.codeNum = code;
+              callback({
+                success: 1,
+                obj: obj
+              });
+            } else {
+              // img.onerror
+              callback({
+                success: 'onerror'
+              });
+            }
+          });
+        } else {
+          // err
+          callback({
+            success: 'err'
+          });
+        }
+      });
+    },
+    _postToPingan: function (obj, callback) {
+      var sio = this.getSio();
+
+      var _self = this;
+
+      var _compDownloadImg = function (result) {
+        if (result.success === 1) {
+          sio.emit('cemit-pinganPostData', result.obj, function (res) {
+            if (res.success === 10 && res.tryCount < 3) {
+              // console.log(res)
+              _self._pinganDownloadImg(res, _compDownloadImg);
+            } else {
+              callback(res);
+            }
+          });
+        } else {
+          callback(result);
+        }
+      }; // 获取验证码
+
+
+      this._pinganDownloadImg(obj, _compDownloadImg);
+    },
+    _postToUkeax: function (obj, callback) {
+      var sio = this.getSio();
+      sio.emit('cemit-ukeaxPostData', obj, callback);
+    },
+    _gotoPage: function () {
+      this.fire('goto-page', {
+        page: 0
+      });
+    }
+  });
+})();</script>
+</dom-module>

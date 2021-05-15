@@ -1,0 +1,34 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<link rel="import" href="kb-opt.html">
+<link rel="import" href="kb-insurance.html">
+<link rel="import" href="kb-note.html">
+<link rel="import" href="kb-flightpost.html">
+<link rel="import" href="kb-sms.html">
+
+<dom-module id="kb-post">
+  <template>
+    <style>
+
+    </style>
+    <iron-pages selected="[[selectedpage]]">
+      <kb-opt sm="[[sm]]" servermans="[[servermans]]" detail="[[detail]]" key="[[key]]" userobj="[[userobj]]" setplaces="[[setplaces]]">
+      </kb-opt>
+      <kb-insurance key="[[key]]" detail="[[detail]]" persons="[[persons]]" ukecards="[[ukecards]]" pancards="[[pancards]]" rsocards="[[rsocards]]" oldcards="[[oldcards]]">
+      </kb-insurance>
+      <kb-note tp="djp" detail="{{detail}}" userobj="[[userobj]]" key="[[key]]">    
+      </kb-note>
+      <kb-flightpost sm="{{sm}}" key="[[key]]" userobj="[[userobj]]">    
+      </kb-flightpost>
+      <kb-note tp="server" detail="{{detail}}" userobj="[[userobj]]" key="[[key]]">
+      </kb-note>
+      <kb-sms sm="[[sm]]" detail="[[detail]]" userobj="[[userobj]]" key="[[key]]"></kb-sms>
+    </iron-pages>
+  </template>
+
+  <script>'use strict';
+
+Polymer({
+  is: 'kb-post'
+});</script>
+</dom-module>

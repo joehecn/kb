@@ -1,0 +1,228 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+--><link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="kb-calendar-layout.html">
+<link rel="import" href="kb-calendar-behavior.html">
+<link rel="import" href="../kb-icons.html">
+
+<!--
+An element providing a solution to no problem in particular.
+
+Example:
+
+    <app-calendar></app-calendar>
+
+@demo demo/index.html
+@hero hero.svg
+-->
+
+<dom-module id="kb-calendar">
+  <template>
+    <style>
+      :host {
+        @apply(--layout-vertical);
+        @apply(--layout-center);
+        @apply(--height-8);
+        @apply(--width-8);
+        @apply(--buffer);
+        text-align: center;
+        --cell-length: 34px;
+        --inner-length: calc(var(--cell-length) * 7 / 8);
+      }
+
+      :host > div {
+        @apply(--layout-horizontal);
+        @apply(--layout-center-center);
+        color: var(--primary-background-color);
+      }
+
+      :host > div:not(:last-child) {
+        height: calc(var(--cell-length) / 2);
+      }
+
+      #dayLabels {
+        margin-top: 12px;
+      }
+
+      #dayLabels > div {
+        width: var(--cell-length);
+      }
+
+      #days {
+        @apply(--layout-wrap);
+      }
+
+      #days > div {
+        @apply(--layout-horizontal);
+        @apply(--layout-center-center);
+        width: var(--cell-length);
+        height: var(--cell-length);
+      }
+
+      #days > div > div {
+        line-height: var(--inner-length);
+        width: var(--inner-length);
+        height: var(--inner-length);
+      }
+
+      div[today] {
+        @apply(--round);
+        color: var(--background-color, --accent-color);
+        font-weight: 700;
+      }
+
+      div[active] {
+        @apply(--round);
+        color: var(--background-color, --primary-color);
+        background-color: var(--foreground-color, --accent-color);
+      }
+
+      .prev, .next {
+        opacity: 0;
+      }
+    </style>
+
+    <div>
+      <paper-icon-button icon="chevron-left" title="上一月" on-tap="_goPreMonth"></paper-icon-button>
+      <div style="width: 150px;">[[year]]年 [[_monthName(month)]]月</div>
+      <paper-icon-button icon="chevron-right" title="下一月" on-tap="_goNextMonth"></paper-icon-button>
+    </div>
+    <div id="dayLabels">
+      <template is="dom-repeat" items="[[_weekDayNames]]">
+        <div>[[_chinaDay(item)]]</div>
+      </template>
+    </div>
+    <div id="days">
+      <template is="dom-repeat" items="[[_prevDays(year, month)]]">
+        <div class="prev">[[item]]</div>
+      </template>
+      <template is="dom-repeat" items="[[_days(year, month)]]">
+        <div>
+          <div style="cursor: pointer;" today$="[[_isEqual(item, day, isNowMonth)]]" active$="[[_isActive(item, month, year, activeDay)]]" on-tap="_changeActiveDay">[[item]]</div>
+        </div>
+      </template>
+      <template is="dom-repeat" items="[[_nextDays(year, month)]]">
+        <div class="next">[[item]]</div>
+      </template>
+    </div>
+  </template>
+
+  <script>'use strict';
+
+Polymer({
+  is: 'kb-calendar',
+  behaviors: [AppCalendar.CalendarBehavior],
+  properties: {
+    firstOffset: {
+      computed: '_firstOffset(year, month)'
+    }
+  },
+  _dayArr: {
+    'Sunday': '日',
+    'Monday': '一',
+    'Tuesday': '二',
+    'Wednesday': '三',
+    'Thursday': '四',
+    'Friday': '五',
+    'Saturday': '六'
+  },
+  // Element Lifecycle
+  ready: function () {// `ready` is called after all elements have been configured, but
+    // propagates bottom-up. This element's children are ready, but parents
+    // are not.
+    //
+    // This is the point where you should make modifications to the DOM (when
+    // necessary), or kick off any processes the element wants to perform.
+  },
+  attached: function () {// `attached` fires once the element and its parents have been inserted
+    // into a document.
+    //
+    // This is a good place to perform any work related to your element's
+    // visual state or active behavior (measuring sizes, beginning animations,
+    // loading resources, etc).
+  },
+  detached: function () {// The analog to `attached`, `detached` fires when the element has been
+    // removed from a document.
+    //
+    // Use this to clean up anything you did in `attached`.
+  },
+  // Element Behavior
+
+  /*_shortenDay: function(day, length) {
+    return day.slice(0, length);
+  },*/
+  _chinaDay: function (day) {
+    return this._dayArr[day];
+  },
+  _firstOffset: function (year, month) {
+    return (new Date(year, month, 0).getDay() + 1) % 7 - 1;
+  },
+  _prevDays: function (year, month) {
+    var monthLength = new Date(year, month, 0).getDate();
+    return this._getDays(monthLength - this.firstOffset, monthLength);
+  },
+  _days: function (year, month) {
+    return this._getDays(1, new Date(year, month + 1, 0).getDate());
+  },
+  _nextDays: function (year, month) {
+    return this._getDays(1, 41 - (new Date(year, month + 1, 0).getDate() + this.firstOffset));
+  },
+  _getDays: function (start, stop) {
+    var days = [];
+
+    for (var i = start; i <= stop; i++) days.push(i);
+
+    return days;
+  },
+  _isEqual: function (a, b, isNowMonth) {
+    if (isNowMonth) {
+      return a === b;
+    }
+
+    return false;
+  },
+  _isActive: function (d, m, y, activeDay) {
+    return y + '-' + this._preZero(this._monthName(m)) + '-' + this._preZero(d) === activeDay;
+  },
+  _goPreMonth: function () {
+    this._gotoMonth(-1);
+  },
+  _goNextMonth: function () {
+    this._gotoMonth(1);
+  },
+  _gotoMonth: function (num) {
+    var _month = this.month + num,
+        _todayDate = new Date(),
+        _todayYear = _todayDate.getFullYear(),
+        _todayMonth = _todayDate.getMonth();
+
+    if (_month === 12) {
+      this.year += 1;
+      this.month = 0;
+    } else if (_month === -1) {
+      this.year -= 1;
+      this.month = 11;
+    } else {
+      this.month = _month;
+    }
+
+    if (this.year === _todayYear && this.month === _todayMonth) {
+      this.isNowMonth = true;
+    } else {
+      this.isNowMonth = false;
+    }
+  },
+  _changeActiveDay: function (event) {
+    this.activeDay = this.year + '-' + this._preZero(this._monthName(this.month)) + '-' + this._preZero(event.target.innerText);
+    this.fire('close-drawer', this.activeDay); //event.stopPropagation();
+  }
+});</script>
+</dom-module>

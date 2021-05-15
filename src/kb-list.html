@@ -1,0 +1,91 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+
+<link rel="import" href="kb-fullcalendar.html">
+<link rel="import" href="kb-calendar/kb-calendar.html">
+<link rel="import" href="kb-icons.html">
+
+<link rel="import" href="../bower_components/app-layout/app-drawer/app-drawer.html">
+
+<link rel="import" href="../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+
+<dom-module id="kb-list">
+  <template>
+    <style>
+      .menu-btn {
+        position: fixed;
+        top: -4px;
+        z-index: 10;
+      }
+
+      app-drawer {
+        z-index: 5;
+        color: #fff;
+        --app-drawer-content-container: {
+          padding-top: 120px;
+          background: #3f51b5;
+        }
+      }
+
+      .logout {
+        margin-left: 40px;
+      }
+
+      .drawer-list a {
+        display: block;
+        padding: 0 16px;
+        text-decoration: none;
+        color: var(--app-secondary-color);
+        line-height: 40px;
+      }
+
+      .drawer-list a.iron-selected {
+        color: black;
+        font-weight: bold;
+      }
+    </style>
+
+    <!-- <paper-icon-button class="menu-btn"
+      icon="logout"
+      on-tap="_logout"
+      aria-label="Categories">
+    </paper-icon-button> -->
+
+    <paper-icon-button class="menu-btn" icon="menu" on-tap="_toggleDrawer" aria-label="Categories">
+    </paper-icon-button>
+
+    <kb-fullcalendar id="kbFullcalendar" gotoday="[[gotoday]]" key="[[key]]" setplaces="[[setplaces]]">
+    </kb-fullcalendar>
+
+    <app-drawer opened="{{drawerOpened}}" tabindex="0" swipe-open="">
+      <paper-button class="logout" on-tap="_logout">
+        Hi, [[userobj.name]] | 退出系统&nbsp;
+        <iron-icon icon="logout"></iron-icon>
+      </paper-button>
+      <kb-calendar active-day="[[gotoday]]" on-close-drawer="_closeDrawer"></kb-calendar>
+      <!-- <div style="display: flex;">
+        <paper-button id="predayBtn" on-tap="_dayTap"><iron-icon icon="chevron-left"></iron-icon>上一天</paper-button>
+        <paper-button id="todayBtn" on-tap="_dayTap"></iron-icon>今天</paper-button>
+        <paper-button id="nextdayBtn" on-tap="_dayTap">下一天<iron-icon icon="chevron-right"></iron-icon></paper-button>
+      </div> -->
+    </app-drawer>
+  </template>
+
+  <script>'use strict';
+
+Polymer({
+  is: 'kb-list',
+  _toggleDrawer: function () {
+    this.drawerOpened = !this.drawerOpened;
+  },
+  _closeDrawer: function (event) {
+    this.fire('calendar-day-changed', event.detail); // this.$.kbFullcalendar.goto()
+
+    this.drawerOpened = false;
+  },
+  _logout: function () {
+    this.fire('logout');
+    this.drawerOpened = false;
+  }
+});</script>
+</dom-module>
