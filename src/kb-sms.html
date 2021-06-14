@@ -244,7 +244,9 @@ Polymer({
   },
   _smChanged: function (sm, userobj) {
     if (sm && sm.sm && sm.sm.operator) {
-      this.phone = sm.sm.operator.match(/\d{11}/)[0];
+      const phones = sm.sm.operator.match(/\d{11}/)
+      if (phones && phones[0])
+        this.phone = sm.sm.operator.match(/\d{11}/)[0];
       this.operator = sm.sm.operator.replace(this.phone, ''); // 异步调用微信接口查询此号码是否在微信通讯录中
       // 如果没有则自动添加
       // 以及是否已经关注我们的企业号

@@ -48,7 +48,7 @@
 
       .top-input-group {
         text-align: center;
-        padding: 10px 0 0 0;
+        padding: 14px 0 0 0;
       }
 
       .top-input-group input {
@@ -82,13 +82,14 @@
 
         <div id="kbInsurance">
           <div>
-            <span class="top-info">选择 [[selectednum]] | 剩余 {{leftCardsNum}}</span>
+            <span class="top-info"><span>选择 [[selectednum]]</span><span hidden$="{{hiddenSpan}}"> | 剩余 {{leftCardsNum}}</span></span>
             <paper-icon-button class="close-btn" icon="close" on-tap="_gotoPage" aria-label="Categories">
             </paper-icon-button>
             <paper-radio-group selected="{{cardTypeSelected}}">
               <paper-radio-button name="3">优</paper-radio-button>
-              <paper-radio-button name="1">平</paper-radio-button>
-              <paper-radio-button name="2">人</paper-radio-button>
+              <!-- <paper-radio-button name="1">平</paper-radio-button> -->
+              <!-- <paper-radio-button name="2">人</paper-radio-button> -->
+              <paper-radio-button name="4">畅</paper-radio-button>
             </paper-radio-group>
             <paper-button toggles="" raised="" class="submit-btn green" disabled$="{{disabledsubmit}}" on-tap="_submit">提交</paper-button>
           </div>
@@ -316,6 +317,9 @@
     is: 'kb-insurance',
     behaviors: [KbUtilBehavior],
     properties: {
+      hiddenSpan: {
+        computed: '_computeShouldShowSpan(cardTypeSelected)'
+      },
       disabledsubmit: {
         type: Boolean,
         value: false
@@ -351,7 +355,7 @@
     observers: ['_cardTypeSelectedChanged(ukecards.length, pancards.length, rsocards.length, cardTypeSelected)', '_shortCardNumChanged(shortCardNum)', '_filterCardsChanged(filterCards.length, selectednum)', // 剩余
     '_oldcardsChanged(oldcards)'],
     _cardTypeSelectedChanged: function (ukelen, panlen, rsolen, cardTypeSelected) {
-      // console.info('_cardTypeSelectedChanged - ', cardTypeSelected === '1' ? '平安' : '人寿')
+      // console.info('_cardTypeSelectedChanged - ', cardTypeSelected, this.shortCardNum)
       // 重置数据 - 初始化
       var cards; // 选择 0
 
@@ -359,7 +363,10 @@
 
       this._emptyPinganCardNums(this.filterPersons);
 
-      if (cardTypeSelected === '3') {
+      if (cardTypeSelected === '4') {
+        // 畅快行 不需要预备卡
+        cards = []
+      } else if (cardTypeSelected === '3') {
         cards = this.ukecards;
       } else if (cardTypeSelected === '1') {
         cards = this.pancards;
@@ -371,10 +378,9 @@
 
       if (this.shortCardNum) {
         this.set('shortCardNum', '');
-      } else {
-        // this.set('filterCards', this._cloneObj(cards))
-        this.set('filterCards', this._filterCardsByShortCardNum(this.cards, ''));
-      }
+      } // else {
+      this.set('filterCards', this._filterCardsByShortCardNum(this.cards, ''));
+      // }
     },
     _shortCardNumChanged: function (shortCardNum) {
       // console.info('_shortCardNumChanged - ', shortCardNum)
@@ -471,10 +477,14 @@
 
       for (i = 0; i < len; i++) {
         if (filterPersons[i].__pinganCardNum__) {
-          this.set('filterPersons.' + i + '.__index__', this.filterCards[index].__index__);
-          this.set('filterPersons.' + i + '.__pinganCardNum__', this.filterCards[index].pinganCardNum);
-          this.set('filterPersons.' + i + '.__id__', this.filterCards[index]._id);
-          this.set('filterPersons.' + i + '.__password__', this.filterCards[index].password);
+          if (this.cardTypeSelected === '4') {
+            this.set('filterPersons.' + i + '.__pinganCardNum__', ' ');
+          } else {
+            this.set('filterPersons.' + i + '.__index__', this.filterCards[index].__index__);
+            this.set('filterPersons.' + i + '.__pinganCardNum__', this.filterCards[index].pinganCardNum);
+            this.set('filterPersons.' + i + '.__id__', this.filterCards[index]._id);
+            this.set('filterPersons.' + i + '.__password__', this.filterCards[index].password);
+          }
           index++;
         }
       }
@@ -495,7 +505,8 @@
 
       if (!item.__pinganCardNum__) {
         // 检查有没有剩余保险卡
-        if (this.leftCardsNum < 1) {
+        // 畅快行 不需要预备卡
+        if (this.cardTypeSelected !== '4' && this.leftCardsNum < 1) {
           this.fire('show-snackbar', {
             innerHTML: '大哥, 没卡了。。。',
             type: 'err'
@@ -572,8 +583,28 @@
             tryCount: 0 // success: 1,
 
           };
+          if (this.cardTypeSelected === '4') {
+            // 畅快行
+            obj.serverMan = this.serverman
+            var _self = this;
+            this._postToChangkuai(obj, function (res) {
+              // console.log({ res })
+              _self.set('filterPersons.' + res.index + '.__locking__', false);
+              let success = res.success
+              if (success === 14) success = res.message
+              _self.set('filterPersons.' + res.index + '.__errMsg__', success);
+              if (res.success === 99) {
+                _self.set('filterPersons.' + res.index + '.__pinganCardNum__', '');
+                _self.set('filterPersons.' + res.index + '.pinganCardNum', res.message);
+                _self.set('filterPersons.' + res.index + '.cardType', 4);
+              }
+              postsLength--;
 
-          if (this.cardTypeSelected === '3') {
+              if (postsLength === 0) {
+                _self.set('disabledsubmit', false);
+              }
+            });
+          } else if (this.cardTypeSelected === '3') {
             obj.card.password = person.__password__;
 
             var _self = this;
@@ -586,9 +617,7 @@
 
               if (res.success === 99) {
                 _self.set('filterPersons.' + res.index + '.__pinganCardNum__', '');
-
                 _self.set('filterPersons.' + res.index + '.pinganCardNum', res.card.pinganCardNum);
-
                 _self.set('filterPersons.' + res.index + '.cardType', 3);
               }
 
@@ -801,10 +830,22 @@
       var sio = this.getSio();
       sio.emit('cemit-ukeaxPostData', obj, callback);
     },
+    _postToChangkuai: function (obj, callback) {
+      var sio = this.getSio();
+      sio.emit('cemit-changkuaiPostData', obj, callback);
+    },
     _gotoPage: function () {
       this.fire('goto-page', {
         page: 0
       });
+    },
+    
+    _computeShouldShowSpan: function (cardTypeSelected) {
+      if (cardTypeSelected === '4') {
+        return true;
+      }
+
+      return false;
     }
   });
 })();</script>

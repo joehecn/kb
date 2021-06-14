@@ -63,7 +63,7 @@ H2/push-compatible servers or to clients that do not support H2/Push.
 This command serves the minified version of the app at `http://localhost:8080`
 in an unbundled state, as it would be served by a push-compatible server:
 
-    polymer serve build/defalut
+    polymer serve build/default
 
 This command serves the minified version of the app at `http://localhost:8080`
 generated using fragment bundling:

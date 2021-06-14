@@ -179,6 +179,12 @@ Polymer({
       return;
     }
 
+    if (typeof msg === 'string') {
+      this.set('errMsg', msg);
+      this.showInfo = false;
+      return;
+    }
+
     if (msg === 11) {
       this.set('errMsg', '该卡已经被使用');
       this.showInfo = false;
@@ -270,6 +276,10 @@ Polymer({
     return phone ? true : false;
   },
   _computeCardTypeStr: function (cardType) {
+    if (cardType === 4) {
+      return '畅';
+    }
+
     if (cardType === 3) {
       return '优';
     }

@@ -32,7 +32,7 @@
 
     <iron-pages selected="[[selectedtab]]">
       <!-- 保险 persons, ukecards, pancards, rsocards, oldcards -->
-      <kb-post sm="[[sm]]" userobj="[[userobj]]" setplaces="[[setplaces]]" servermans="[[servermans]]" key="[[key]]" detail="[[detail]]" persons="[[persons]]" ukecards="[[ukecards]]" pancards="[[pancards]]" rsocards="[[rsocards]]" oldcards="[[oldcards]]" selectedpage="[[selectedpage]]" on-goto-page="gotoPage">
+      <kb-post sm="[[sm]]" userobj="[[userobj]]" setplaces="[[setplaces]]" servermans="[[servermans]]" key="[[key]]" detail="[[detail]]" persons="[[persons]]" serverman="[[serverman]]" ukecards="[[ukecards]]" pancards="[[pancards]]" rsocards="[[rsocards]]" oldcards="[[oldcards]]" selectedpage="[[selectedpage]]" on-goto-page="gotoPage">
       </kb-post>
       <kb-sm sm="[[sm]]" userobj="[[userobj]]">
       </kb-sm>
@@ -210,6 +210,7 @@ Polymer({
         this.set('pancards', this._addIndex(_filter.pancards.sort(this._sortCards)));
         this.set('rsocards', this._addIndex(_filter.rsocards.sort(this._sortCards)));
         this.set('oldcards', _filter.oldcards);
+        this.set('serverman', serverMan);
       }.bind(this)); // persons
 
       this.set('persons', this._filterPersons(this.sm.sm._id, this.sm.team.users));
